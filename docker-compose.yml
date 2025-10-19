@@ -1,0 +1,58 @@
+services:
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: DockerFile
+    volumes:
+      - ./backend/:/back
+    env_file: 
+      - ./backend/.env_backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:14
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./backend/.env_backend
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: 
+      context: ./backend
+      dockerfile: DockerFile
+    command: celery -A config worker -l info
+    volumes:
+      - ./backend/:/back
+    env_file:
+      - ./backend/.env_backend
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: 
+      context: ./backend
+      dockerfile: DockerFile
+    command: celery -A config beat -l info
+    volumes: 
+      - ./backend/:/back
+    env_file:
+      - ./backend/.env_backend
+    depends_on:
+      - redis
+  
+volumes:
+  postgres_data:
+  redis_data:
