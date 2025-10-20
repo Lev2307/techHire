@@ -1,0 +1,85 @@
+import uuid
+
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+from .managers import ApplicantManager
+
+CITY_CHOICES = [
+    ('Moscow', 'Москва'),
+    ('Saint Petersburg', 'СПБ')
+]
+GENDER_CHOICES = [
+    ('Male', 'Мужской'),
+    ('Female', 'Женский'),
+    ('Not specified', 'Не указан')
+]
+EXPERIENCE_CHOICES = [
+    ('No exp', 'Без опыта'),
+    ('Year', 'От 1 года'),
+    ('Three years', 'От 3 лет'),
+    ('Six years', 'От 6 лет'),
+]
+
+class Specializations(models.Model):
+    name = models.CharField(max_length=45)
+
+    def __str__(self):
+        return self.name
+
+class Technologies(models.Model):
+    name = models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.name
+
+class ApplicantLinkedTelegram(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    username = models.CharField(max_length=100)
+    user_id = models.BigIntegerField()
+    chat_id = models.BigIntegerField()
+    date_linked = models.DateTimeField(auto_now_add=True)
+
+class Applicant(AbstractBaseUser, PermissionsMixin):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField('Почта', unique=True)
+    first_name = models.CharField("Имя", max_length=150)
+    last_name = models.CharField("Фамилия", max_length=150)
+    city = models.CharField(
+        'Ваш город',
+        choices=CITY_CHOICES, 
+        default=CITY_CHOICES[0][0]
+    )
+    gender = models.CharField(
+        'Ваш пол',
+        choices=GENDER_CHOICES, 
+        default=GENDER_CHOICES[0][0], 
+        help_text='Обратите внимание, что не указанный пол может повлиять на построение ваших рекомендаций'
+    )
+    age = models.PositiveIntegerField(
+        'Ваш возраст',
+        validators=[
+            MinValueValidator(16, message='Ваш возраст должен быть не менее 16 лет.'),
+            MaxValueValidator(65, message='Ваш возраст должен быть не более 16 лет.'),
+        ],
+        default=16
+    )
+    experience = models.CharField(
+        'Ваш опыт работы как IT-специалиста',
+        choices=EXPERIENCE_CHOICES,
+        default=EXPERIENCE_CHOICES[0][0]
+    )
+    specializations = models.ManyToManyField(Specializations)
+    technologies = models.ManyToManyField(Technologies)
+    linked_telegram = models.OneToOneField(ApplicantLinkedTelegram, on_delete=models.CASCADE, null=True, blank=True)
+    is_staff = models.BooleanField(default=False)
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = ApplicantManager()
+
+    def __str__(self):
+        return self.email
+

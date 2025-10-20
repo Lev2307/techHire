@@ -1,2 +1,4 @@
 backend/.env_backend
 backend/celerybeat-schedule
+backend/entrypoint.sh
+frontend/
