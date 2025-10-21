@@ -1,7 +1,7 @@
 from django.contrib import admin
-from .models import Applicant, Specializations, Technologies
+from .models import Applicant, Specialization, Technology
 
 admin.site.register(Applicant)
-admin.site.register(Specializations)
-admin.site.register(Technologies)
+admin.site.register(Specialization)
+admin.site.register(Technology)
 

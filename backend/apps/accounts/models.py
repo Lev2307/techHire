@@ -11,9 +11,9 @@ CITY_CHOICES = [
     ('Saint Petersburg', 'СПБ')
 ]
 GENDER_CHOICES = [
-    ('Male', 'Мужской'),
-    ('Female', 'Женский'),
-    ('Not specified', 'Не указан')
+    ('male', 'Мужской'),
+    ('female', 'Женский'),
+    ('not specified', 'Не указан')
 ]
 EXPERIENCE_CHOICES = [
     ('No exp', 'Без опыта'),
@@ -22,14 +22,22 @@ EXPERIENCE_CHOICES = [
     ('Six years', 'От 6 лет'),
 ]
 
-class Specializations(models.Model):
+class Specialization(models.Model):
     name = models.CharField(max_length=45)
+
+    class Meta:
+        verbose_name = 'Specialization'
+        verbose_name_plural = 'Specializations'
 
     def __str__(self):
         return self.name
 
-class Technologies(models.Model):
+class Technology(models.Model):
     name = models.CharField(max_length=30)
+
+    class Meta:
+        verbose_name = 'Technology'
+        verbose_name_plural = 'Technologies'
 
     def __str__(self):
         return self.name
@@ -61,7 +69,7 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
         'Ваш возраст',
         validators=[
             MinValueValidator(16, message='Ваш возраст должен быть не менее 16 лет.'),
-            MaxValueValidator(65, message='Ваш возраст должен быть не более 16 лет.'),
+            MaxValueValidator(65, message='Ваш возраст должен быть не более 65 лет.'),
         ],
         default=16
     )
@@ -70,8 +78,8 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
         choices=EXPERIENCE_CHOICES,
         default=EXPERIENCE_CHOICES[0][0]
     )
-    specializations = models.ManyToManyField(Specializations)
-    technologies = models.ManyToManyField(Technologies)
+    specializations = models.ManyToManyField(Specialization)
+    technologies = models.ManyToManyField(Technology)
     linked_telegram = models.OneToOneField(ApplicantLinkedTelegram, on_delete=models.CASCADE, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
 
