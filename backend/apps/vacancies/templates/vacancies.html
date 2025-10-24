@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Поиск</h1>
+    <form action="{% url 'vacancies:search_vacancies' %}" method="get">
+        <input type="text" name="vacancy_name" id="vacancy_name" placeholder="Профессия, должность" required>
+        <input type="number" name="payment_from" id="payment_from" placeholder="Зарплата ">
+        <button type="submit">Поиск вакансий</button>
+    </form>
+{% endblock content %}

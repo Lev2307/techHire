@@ -22,5 +22,6 @@ from apps.vacancies.views import HomeView
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='homepage'),
-    path('accounts/', include(('apps.accounts.urls', 'accounts'), namespace='accounts'))
+    path('accounts/', include(('apps.accounts.urls', 'accounts'), namespace='accounts')),
+    path('vacancies/', include(('apps.vacancies.urls', 'vacancies'), namespace='vacancies'))
 ]
