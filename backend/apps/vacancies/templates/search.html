@@ -1,5 +1,46 @@
 {% extends 'base.html' %}
 
+{% block title %}Поиск вакансий по запросу - {{query}}{% endblock title %}
+
 {% block content %}
-    <h1>Прива</h1>
+    {% if founded_vacancies %}
+        <h2>По вашему запросу было найдено несколько вакансий - {{ founded_vacancies|length }}</h2>
+        {% for vacancy in founded_vacancies %}
+            <div class="card">
+                <div class="header">
+                    <h1>{{ vacancy.profession }}</h1>
+                    {% if vacancy.payment_from == 0 and vacancy.payment_to == 0 %}
+                        <p>По договоренности</p>
+                    {% elif vacancy.payment_to == 0 %}
+                        <p>от {{ vacancy.payment_from }}₽ за месяц</p>
+                    {% elif vacancy.payment_from == 0 or vacancy.payment_from == vacancy.payment_to %}
+                        <p>до {{ vacancy.payment_to }}₽ за месяц</p>
+                    {% else %}
+                        <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}₽</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4>Задачи/Обязанности</h4>
+                    <ul>
+                        {% for vac in vacancy.duties %}
+                            <li>{{ vac }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <h4>Требования</h4>
+                    <ul>
+                    {% for req in vacancy.requirements %}
+                        <li>{{ req }}</li>
+                    {% endfor %}
+                    </ul>
+                </div>
+                <div>
+                    <p><b>Фирма/компания</b> - <a href="{{ vacancy.client.url }}">{{ vacancy.firm_name }}</a></p>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <h1>Не было найдено вакансий по вашему запросу: {{ query }}</h1>
+    {% endif %}
 {% endblock content %}

@@ -4,7 +4,7 @@ from django.db import models
 
 from ..accounts.models import Applicant, EXPERIENCE_CHOICES
 
-INITIAL_SOURCES_CHOICES = [
+INITIAL_SOURCES = [
     ('SuperJob', 'SuperJob'),
     ('HH', 'hh.ru')
 ]
@@ -16,8 +16,8 @@ EDUCATION_CHOICES = [
     ('Secondary', 'Среднее'),
 ]
 PLACE_OF_WORK_CHOICES = [
+    ('Office', 'Очная'),
     ('Remote', 'Удаленная'),
-    ('Office', 'Очная')
 ]
 
 class Firm(models.Model):
@@ -33,11 +33,10 @@ class Firm(models.Model):
 class Vacancy(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(Applicant, on_delete=models.CASCADE)
-    vacancy_initial_source = models.CharField('Источник', choices=INITIAL_SOURCES_CHOICES, default=INITIAL_SOURCES_CHOICES[0][0])
+    vacancy_initial_source = models.CharField('Источник', choices=INITIAL_SOURCES, default=INITIAL_SOURCES[0][0])
     title = models.CharField('Название', max_length=100)
-    duties = models.TextField('Задачи', max_length=850)
-    requirements = models.TextField('Требования', max_length=850)
-    working_conditions = models.TextField('Условия работы', max_length=850)
+    duties = models.TextField('Задачи', max_length=1500)
+    requirements = models.TextField('Требования', max_length=2000)
     payment_from = models.PositiveIntegerField('Зп от', blank=True, null=True)
     payment_to = models.PositiveIntegerField('Зп до', blank=True, null=True)
     experience = models.CharField('Опыт', choices=EXPERIENCE_CHOICES, default=EXPERIENCE_CHOICES[0][0])
@@ -53,3 +52,14 @@ class Vacancy(models.Model):
         
     def __str__(self):
         return self.title
+
+class SearchHistory(models.Model):
+    user = models.ForeignKey(Applicant, on_delete=models.CASCADE)
+    search_query = models.CharField(max_length=70)
+    results = models.IntegerField(default=0)
+
+    class Meta:
+        verbose_name_plural = 'Search Histories'
+    
+    def __str__(self):
+        return self.search_query

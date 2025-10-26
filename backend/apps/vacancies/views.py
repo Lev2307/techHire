@@ -1,12 +1,11 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, HttpResponseRedirect, HttpResponse
-from django.urls import reverse
-from django.utils.decorators import method_decorator
-
+from django.urls import reverse, reverse_lazy
 from django.views import generic, View
-from django.views.decorators.csrf import csrf_exempt
 
-
-from .models import Vacancy
+from ..accounts.models import Applicant
+from .api import get_vacancies_from_combined_api_sources
+from .models import Vacancy, SearchHistory
 
 # Create your views here.
 class HomeView(generic.TemplateView):
@@ -24,16 +23,25 @@ class HomeView(generic.TemplateView):
         c['user'] = self.request.user
         return c
 
-@method_decorator(csrf_exempt, name='get')
-class RecommendedVacanciesView(View):
+class RecommendedVacanciesView(LoginRequiredMixin, View):
     template_name = 'vacancies.html'
+    login_url = reverse_lazy("accounts:login")
 
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
 
-class SearchVacanciesView(View):
+class SearchVacanciesView(LoginRequiredMixin, View):
     template_name = 'search.html'
-    
+    login_url = reverse_lazy("accounts:login")
+
     def get(self, request, *args, **kwargs):
-        print('search')
-        return render(request, self.template_name)
+        query = request.GET.get('vacancy_name', '')
+        salary_from = request.GET.get('payment_from')
+        salary_from = int(salary_from) if salary_from else 0
+        if query:
+            if not SearchHistory.objects.filter(search_query=query).exists():
+                new_q = SearchHistory.objects.create(user=self.request.user, search_query=query)
+                new_q.save()
+            founded_vacancies_by_q = get_vacancies_from_combined_api_sources(query, self.request.user, salary_from)
+            return render(request, self.template_name, {'founded_vacancies': founded_vacancies_by_q, 'query': query})
+        return HttpResponseRedirect(reverse('vacancies:recom_vacancies'))

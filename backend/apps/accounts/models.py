@@ -22,6 +22,7 @@ EXPERIENCE_CHOICES = [
     ('Six years', 'От 6 лет'),
 ]
 
+
 class Specialization(models.Model):
     name = models.CharField(max_length=45)
 
