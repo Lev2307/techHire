@@ -9,15 +9,17 @@ INITIAL_SOURCES = [
     ('HH', 'hh.ru')
 ]
 EDUCATION_CHOICES = [
+    ('not specified', 'Не имеет значения'),
     ('Student', 'Учащийся'),
-    ('Higher', 'Высшее образование'),
+    ('Higher', 'Высшее'),
     ('Incomplete_higher', 'Неполное высшее'),
     ('Secondary_special', 'Средне-специальное'),
     ('Secondary', 'Среднее'),
 ]
 PLACE_OF_WORK_CHOICES = [
-    ('Office', 'Очная'),
-    ('Remote', 'Удаленная'),
+    ('office', 'Очная'),
+    ('remote', 'Удалённая'),
+    ('not specified', 'Не имеет значения')
 ]
 
 class Firm(models.Model):
@@ -33,7 +35,8 @@ class Firm(models.Model):
 class Vacancy(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(Applicant, on_delete=models.CASCADE)
-    vacancy_initial_source = models.CharField('Источник', choices=INITIAL_SOURCES, default=INITIAL_SOURCES[0][0])
+    initial_source = models.CharField('Источник', choices=INITIAL_SOURCES, default=INITIAL_SOURCES[0][0])
+    external_id = models.PositiveIntegerField()
     title = models.CharField('Название', max_length=100)
     duties = models.TextField('Задачи', max_length=1500)
     requirements = models.TextField('Требования', max_length=2000)
@@ -42,10 +45,10 @@ class Vacancy(models.Model):
     experience = models.CharField('Опыт', choices=EXPERIENCE_CHOICES, default=EXPERIENCE_CHOICES[0][0])
     education = models.CharField('Образование', choices=EDUCATION_CHOICES, default=EDUCATION_CHOICES[0][0])
     place_of_work = models.CharField('Тип работы', choices=PLACE_OF_WORK_CHOICES, default=PLACE_OF_WORK_CHOICES[0][0])
-    vacancy_valid_until = models.DateTimeField('Вакансия действительна до')
-    vacancy_url = models.URLField('Ссылка на вакансию', max_length=150) 
+    valid_until = models.DateTimeField('Вакансия действительна до')
+    original_link = models.URLField('Ссылка на вакансию', max_length=150) 
     date_added = models.DateTimeField('Время добавления', auto_now=True)
-    firm = models.ForeignKey(Firm, on_delete=models.CASCADE)
+    firm = models.ForeignKey(Firm, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         verbose_name_plural = 'Vacancies'

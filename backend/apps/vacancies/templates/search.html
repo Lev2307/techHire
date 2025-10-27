@@ -8,19 +8,27 @@
         {% for vacancy in founded_vacancies %}
             <div class="card">
                 <div class="header">
-                    <h1>{{ vacancy.profession }}</h1>
-                    {% if vacancy.payment_from == 0 and vacancy.payment_to == 0 %}
-                        <p>По договоренности</p>
-                    {% elif vacancy.payment_to == 0 %}
-                        <p>от {{ vacancy.payment_from }}₽ за месяц</p>
-                    {% elif vacancy.payment_from == 0 or vacancy.payment_from == vacancy.payment_to %}
-                        <p>до {{ vacancy.payment_to }}₽ за месяц</p>
-                    {% else %}
-                        <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}₽</p>
-                    {% endif %}
+                    <div>
+                        <h1>{{ vacancy.profession }}</h1>
+                        {% if vacancy.payment_from == 0 and vacancy.payment_to == 0 %}
+                            <p>По договоренности</p>
+                        {% elif vacancy.payment_to == 0 %}
+                            <p>от {{ vacancy.payment_from }}₽ за месяц</p>
+                        {% elif vacancy.payment_from == 0 or vacancy.payment_from == vacancy.payment_to %}
+                            <p>до {{ vacancy.payment_to }}₽ за месяц</p>
+                        {% else %}
+                            <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}₽</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=vacancy.id %}?parse_from={{ vacancy.vacancy_initial_source }}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Добавить в избранное</button>
+                        </form>
+                    </div>
                 </div>
                 <div>
-                    <h4>Задачи/Обязанности</h4>
+                    <h4>Задачи:</h4>
                     <ul>
                         {% for vac in vacancy.duties %}
                             <li>{{ vac }}</li>
@@ -35,6 +43,9 @@
                     {% endfor %}
                     </ul>
                 </div>
+                {{ vacancy.education }}
+                {{ vacancy.place_of_work }}
+                {{ vacancy.experience }}
                 <div>
                     <p><b>Фирма/компания</b> - <a href="{{ vacancy.client.url }}">{{ vacancy.firm_name }}</a></p>
                 </div>
