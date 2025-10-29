@@ -36,16 +36,29 @@ class SearchVacanciesView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         query = request.GET.get('vacancy_name', '')
-        salary_from = request.GET.get('payment_from')
-        salary_from = int(salary_from) if salary_from else 0
+        payment_from = request.GET.get('payment_from')
+        payment_from = int(payment_from) if payment_from else 0
+        params_from_form = {
+            'query': query,
+            'payment_from': payment_from
+        }
         if query:
-            if not SearchHistory.objects.filter(search_query=query).exists():
-                new_q = SearchHistory.objects.create(user=self.request.user, search_query=query)
+            founded_vacancies_by_q = get_vacancies_from_combined_api_sources(query, self.request.user, payment_from)
+            res = len(founded_vacancies_by_q)
+            if not SearchHistory.objects.filter(search_query=query).exists() and res > 0:
+                new_q = SearchHistory.objects.create(user=self.request.user, search_query=query, results=res)
                 new_q.save()
-            founded_vacancies_by_q = get_vacancies_from_combined_api_sources(query, self.request.user, salary_from)
-            return render(request, self.template_name, {'founded_vacancies': founded_vacancies_by_q, 'query': query})
+            return render(request, self.template_name, {'founded_vacancies': founded_vacancies_by_q, 'url_params': params_from_form})
         return HttpResponseRedirect(reverse('vacancies:recom_vacancies'))
 
+class FavouriteVacanciesList(LoginRequiredMixin, generic.ListView):
+    model = Vacancy
+    template_name = "favourites.html"
+    context_object_name = "favourites"
+
+    def get_queryset(self):
+        return self.model.objects.filter(user=self.request.user)
+    
 class AddVacancyToFavourites(LoginRequiredMixin, View):
     model = Vacancy
     login_url = reverse_lazy("accounts:login")
@@ -53,6 +66,10 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
     def post(self, request, *args, **kwargs):
         vac_api_id = self.kwargs['pk']
         vac_source = request.GET.get('parse_from', '')
+        url_params = {
+            'vacancy_name': request.GET.get('q'),
+            'payment_from': request.GET.get('pf')
+        }
         if vac_source in list([i[0] for i in INITIAL_SOURCES]):
             if not self.model.objects.filter(external_id=vac_api_id).exists():
                 vacancy_info_from_api = get_vacancy_from_api(vac_api_id, vac_source)
@@ -73,7 +90,42 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                         original_link=vacancy_info_from_api["link"]
                     )
                     vac.save()
-                    return HttpResponseRedirect(reverse('vacancies:recom_vacancies'))
+                    print(reverse('vacancies:search_vacancies', query=url_params))
+                    return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
                 return HttpResponse('Wrong vacancy id!')
             return HttpResponse('Was already added to favorites!')
         return HttpResponse('Wrong parse_from query param')
+    
+class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
+    model = Vacancy
+    login_url = reverse_lazy("accounts:login")
+
+    def get_object(self):
+        return self.model.objects.get(external_id=self.kwargs['pk'])
+    
+    def get_success_url(self):
+        if self.request.GET.get('q') != None and self.request.GET.get('pf') != None:
+            url_params = {
+                'vacancy_name': self.request.GET.get('q'),
+                'payment_from': self.request.GET.get('pf')
+            }
+            return reverse_lazy("vacancies:search_vacancies", query=url_params)
+        else:
+            return reverse_lazy("vacancies:favourite_vacancies")
+    
+    def dispatch(self, request, *args, **kwargs):
+        obj = self.get_object()
+        if obj.user != self.request.user:
+            return self.handle_vacancy_not_found()
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
+    
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+        return HttpResponseRedirect(self.get_success_url())
+
+    def handle_vacancy_not_found(self):
+        return HttpResponseRedirect(reverse("vacancies:recom_vacancies"))

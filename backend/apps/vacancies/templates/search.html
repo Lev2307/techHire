@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}Поиск вакансий по запросу - {{query}}{% endblock title %}
+{% block title %}Поиск вакансий по запросу - {{url_params.query}}{% endblock title %}
 
 {% block content %}
     {% if founded_vacancies %}
-        <h2>По вашему запросу было найдено несколько вакансий - {{ founded_vacancies|length }}</h2>
+        <h2>По вашему запросу "{{ url_params.query }}" было найдено несколько вакансий - {{ founded_vacancies|length }}</h2>
         {% for vacancy in founded_vacancies %}
             <div class="card">
                 <div class="header">
@@ -21,17 +21,24 @@
                         {% endif %}
                     </div>
                     <div>
-                        <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=vacancy.id %}?parse_from={{ vacancy.vacancy_initial_source }}" method="post">
-                            {% csrf_token %}
-                            <button type="submit">Добавить в избранное</button>
-                        </form>
+                        {% if vacancy.is_added_to_favorites %} 
+                            <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=vacancy.id %}?q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                {% csrf_token %}
+                                <button type="submit">Удалить из избранного</button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=vacancy.id %}?parse_from={{ vacancy.vacancy_initial_source }}&q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                {% csrf_token %}
+                                <button type="submit">Добавить в избранное</button>
+                            </form>
+                        {% endif %}
                     </div>
                 </div>
                 <div>
                     <h4>Задачи:</h4>
                     <ul>
-                        {% for vac in vacancy.duties %}
-                            <li>{{ vac }}</li>
+                        {% for d in vacancy.duties %}
+                            <li>{{ d }}</li>
                         {% endfor %}
                     </ul>
                 </div>
@@ -52,6 +59,6 @@
             </div>
         {% endfor %}
     {% else %}
-        <h1>Не было найдено вакансий по вашему запросу: {{ query }}</h1>
+        <h1>Не было найдено вакансий по вашему запросу: {{ url_params.query }}</h1>
     {% endif %}
 {% endblock content %}

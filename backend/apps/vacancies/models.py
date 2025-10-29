@@ -36,7 +36,7 @@ class Vacancy(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(Applicant, on_delete=models.CASCADE)
     initial_source = models.CharField('Источник', choices=INITIAL_SOURCES, default=INITIAL_SOURCES[0][0])
-    external_id = models.PositiveIntegerField()
+    external_id = models.PositiveIntegerField(unique=True)
     title = models.CharField('Название', max_length=100)
     duties = models.TextField('Задачи', max_length=1500)
     requirements = models.TextField('Требования', max_length=2000)
