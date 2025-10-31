@@ -29,7 +29,7 @@ class ApplicantCreationForm(UserCreationForm):
     )
     class Meta:
         model = Applicant
-        fields = ['first_name', 'last_name', 'email', 'city', 'gender', 'age', 'experience', 'specializations', 'technologies']
+        fields = ['first_name', 'last_name', 'email', 'city', 'age', 'experience', 'specializations', 'technologies']
 
 
 class OwnAuthenticationForm(AuthenticationForm):

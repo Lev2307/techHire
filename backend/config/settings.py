@@ -69,6 +69,16 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -110,7 +120,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL')
+CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_TIMEZONE = os.environ.get('TZ')
 
 SPECIALIZATIONS_LIST = [
@@ -149,3 +159,7 @@ TECHNOLOGIES_LIST = [
 ]
 
 SUPERJOB_API_KEY = os.environ.get('SUPERJOB_API_SECRET_KEY')
+
+HH_API_CLIENT_ID = os.environ.get('HH_API_CLIENT_ID')
+HH_API_CLIENT_SECRET = os.environ.get('HH_API_CLIENT_SECRET')
+HH_API_ACCESS_TOKEN = os.environ.get("HH_API_ACCESS_TOKEN")

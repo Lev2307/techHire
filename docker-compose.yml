@@ -6,7 +6,7 @@ services:
     volumes:
       - ./backend/:/back
     env_file: 
-      - ./backend/.env_back
+      - ./backend/.env.backend
     ports:
       - "8000:8000"
     depends_on:
@@ -18,7 +18,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
-      - ./backend/.env_back
+      - ./backend/.env.backend
     ports:
       - "5432:5432"
 
@@ -37,7 +37,7 @@ services:
     volumes:
       - ./backend/:/back
     env_file:
-      - ./backend/.env_back
+      - ./backend/.env.backend
     depends_on:
       - redis
 
@@ -49,7 +49,7 @@ services:
     volumes: 
       - ./backend/:/back
     env_file:
-      - ./backend/.env_back
+      - ./backend/.env.backend
     depends_on:
       - redis
   

@@ -8,12 +8,7 @@ from .managers import ApplicantManager
 
 CITY_CHOICES = [
     ('Moscow', 'Москва'),
-    ('Saint Petersburg', 'СПБ')
-]
-GENDER_CHOICES = [
-    ('male', 'Мужской'),
-    ('female', 'Женский'),
-    ('not specified', 'Не указан')
+    ('Saint Petersburg', 'Санкт-Петербург')
 ]
 EXPERIENCE_CHOICES = [
     ('No exp', 'Без опыта'),
@@ -59,12 +54,6 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
         'Ваш город',
         choices=CITY_CHOICES, 
         default=CITY_CHOICES[0][0]
-    )
-    gender = models.CharField(
-        'Ваш пол',
-        choices=GENDER_CHOICES, 
-        default=GENDER_CHOICES[0][0], 
-        help_text='Обратите внимание, что не указанный пол может повлиять на построение ваших рекомендаций'
     )
     age = models.PositiveIntegerField(
         'Ваш возраст',

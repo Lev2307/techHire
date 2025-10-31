@@ -2,10 +2,10 @@ from datetime import datetime
 
 import requests
 
-from config.settings import SUPERJOB_API_KEY
+from config.settings import SUPERJOB_API_KEY, HH_API_ACCESS_TOKEN
 from ..accounts.models import Applicant, EXPERIENCE_CHOICES
 from .models import Vacancy, INITIAL_SOURCES, PLACE_OF_WORK_CHOICES
-from .helpers import generate_user_info_for_superjob_api_request, extract_duties_and_requirements_by_keywords
+from .helpers import get_user_city_info_for_superjob_api_request, extract_duties_and_requirements_by_keywords, get_user_city_info_for_hh_api_request
 
 EDUCATIONS_SUPERJOB = [
     (0, 'not specified', 'Не имеет значения'),
@@ -19,7 +19,7 @@ EDUCATIONS_SUPERJOB = [
 def get_vacancies_from_superjob_source(query, user, salary_from):
     url = f"https://api.superjob.ru/2.0/vacancies/"
     headers = {'X-Api-App-Id': SUPERJOB_API_KEY}
-    user_info = generate_user_info_for_superjob_api_request(user.city, user.gender)
+    city = get_user_city_info_for_superjob_api_request(user.get_city_display(), headers)
     params = {
         'count': 10,
         'order_field': 'relevance',
@@ -27,8 +27,7 @@ def get_vacancies_from_superjob_source(query, user, salary_from):
         'keyword': query,
         'catalogues': '33',
         'payment_from': salary_from,
-        't': user_info['t'],
-        'gender': user_info['gender'],
+        't': city
     }
     if salary_from < 50_000:
         del params['payment_from']
@@ -50,9 +49,32 @@ def get_vacancies_from_superjob_source(query, user, salary_from):
         
 
     return [i for i in vacancies if i not in removed_vacancies]
+
+def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int) -> dict:
+    applicant_city_humanable = user.get_city_display()
+    headers = {
+        "Authorization": f"Bearer {HH_API_ACCESS_TOKEN}",
+        "User-Agent": "TechHire/1.0"
+    }
+    city = get_user_city_info_for_hh_api_request(applicant_city_humanable, headers)
+    params = {
+        'per_page': 5,
+        'text': query,
+        'area': city,
+        'professional_role': '11',
+        'salary': salary_from,
+        'order_by': 'date_from',
+    }
+    if salary_from < 50_000:
+        del params["salary"]
+    
+    response = requests.get("https://api.hh.ru/vacancies", headers=headers)
+    print(response.json())
+    return {}
+
 def get_vacancies_from_combined_api_sources(query: str, user: Applicant, salary_from: int) -> dict:
     superjob_vacancies = get_vacancies_from_superjob_source(query, user, salary_from)
-    # headhunter_vac = get_vacancies_from_headhunter_source(query, salary_from, user)
+    headhunter_vac = get_vacancies_from_headhunter_source(query, user, salary_from)
     headhunter_vacancies = []
 
     return superjob_vacancies + headhunter_vacancies
