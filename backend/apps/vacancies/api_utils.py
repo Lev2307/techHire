@@ -15,19 +15,20 @@ EDUCATIONS_SUPERJOB = [
     (5, 'Secondary', 'Среднее'),
     (6, 'Student', 'Учащийся'),
 ]
-    
+
+
 def get_vacancies_from_superjob_source(query, user, salary_from):
     url = f"https://api.superjob.ru/2.0/vacancies/"
     headers = {'X-Api-App-Id': SUPERJOB_API_KEY}
     city = get_user_city_info_for_superjob_api_request(user.get_city_display(), headers)
     params = {
         'count': 10,
-        'order_field': 'relevance',
         'sort_new': 1,
         'keyword': query,
         'catalogues': '33',
         'payment_from': salary_from,
-        't': city
+        't': city,
+        'order_field': 'relevance',
     }
     if salary_from < 50_000:
         del params['payment_from']
@@ -43,12 +44,9 @@ def get_vacancies_from_superjob_source(query, user, salary_from):
         vac['duties'] = parsed_options['duties']
         vac['requirements'] = parsed_options['requirements']
         vac['vacancy_initial_source'] = INITIAL_SOURCES[0][0]
-        if vac['duties'] == [] or vac['requirements'] == []:
-            removed_vacancies.append(vac)
-        vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])
-        
-
+        vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])    
     return [i for i in vacancies if i not in removed_vacancies]
+    
 
 def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int) -> dict:
     applicant_city_humanable = user.get_city_display()
@@ -58,25 +56,32 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     }
     city = get_user_city_info_for_hh_api_request(applicant_city_humanable, headers)
     params = {
-        'per_page': 5,
+        'per_page': 10,
         'text': query,
         'area': city,
-        'professional_role': '11',
+        'professional_role': ['156', '160', '10', '12', '150', '25', '165', '34', '36', '73', '155', '96', '164', '104', '157', '107', '112', '113', '148', '114', '116', '121', '124', '125', '126'],
         'salary': salary_from,
-        'order_by': 'date_from',
+        'order_by': 'relevance'
     }
     if salary_from < 50_000:
         del params["salary"]
     
-    response = requests.get("https://api.hh.ru/vacancies", headers=headers)
-    print(response.json())
-    return {}
+    response = requests.get("https://api.hh.ru/vacancies", headers=headers, params=params)
+    vacancies = response.json().get("items")
+    for vac in vacancies:
+        vac_resp = requests.get(f"https://api.hh.ru/vacancies/{vac['id']}", headers=headers).json()
+        text = vac_resp["description"]
+        print(vac_resp["id"])
+        parsed_options = extract_duties_and_requirements_by_keywords(text)
+        vac["duties"] = parsed_options['duties']
+        vac["requirements"] = parsed_options['requirements']
+        vac['vacancy_initial_source'] = INITIAL_SOURCES[1][0]
+        vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])
+    return vacancies
 
 def get_vacancies_from_combined_api_sources(query: str, user: Applicant, salary_from: int) -> dict:
     superjob_vacancies = get_vacancies_from_superjob_source(query, user, salary_from)
-    headhunter_vac = get_vacancies_from_headhunter_source(query, user, salary_from)
-    headhunter_vacancies = []
-
+    headhunter_vacancies = get_vacancies_from_headhunter_source(query, user, salary_from)
     return superjob_vacancies + headhunter_vacancies
 
 def get_vacancy_from_api(external_id: int, source: str):

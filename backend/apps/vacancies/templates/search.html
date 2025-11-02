@@ -6,57 +6,81 @@
     {% if founded_vacancies %}
         <h2>По вашему запросу "{{ url_params.query }}" было найдено несколько вакансий - {{ founded_vacancies|length }}</h2>
         {% for vacancy in founded_vacancies %}
-            <div class="card">
-                <div class="header">
-                    <div>
-                        <h1>{{ vacancy.profession }}</h1>
-                        {% if vacancy.payment_from == 0 and vacancy.payment_to == 0 %}
-                            <p>По договоренности</p>
-                        {% elif vacancy.payment_to == 0 %}
-                            <p>от {{ vacancy.payment_from }}₽ за месяц</p>
-                        {% elif vacancy.payment_from == 0 or vacancy.payment_from == vacancy.payment_to %}
-                            <p>до {{ vacancy.payment_to }}₽ за месяц</p>
-                        {% else %}
-                            <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}₽</p>
-                        {% endif %}
+            {% if vacancy.vacancy_initial_source == 'SuperJob' %}
+                <div class="card">
+                    <div class="header">
+                        <div>
+                            <h1>{{ vacancy.profession }}</h1>
+                            {% if vacancy.payment_from == 0 and vacancy.payment_to == 0 %}
+                                <p>По договоренности</p>
+                            {% elif vacancy.payment_to == 0 %}
+                                <p>от {{ vacancy.payment_from }}₽ за месяц</p>
+                            {% elif vacancy.payment_from == 0 or vacancy.payment_from == vacancy.payment_to %}
+                                <p>до {{ vacancy.payment_to }}₽ за месяц</p>
+                            {% else %}
+                                <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}₽</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            {% if vacancy.is_added_to_favorites %} 
+                                <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=vacancy.id %}?q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit">Удалить из избранного</button>
+                                </form>
+                            {% else %}
+                                <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=vacancy.id %}?parse_from={{ vacancy.vacancy_initial_source }}&q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit">Добавить в избранное</button>
+                                </form>
+                            {% endif %}
+                        </div>
                     </div>
                     <div>
-                        {% if vacancy.is_added_to_favorites %} 
-                            <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=vacancy.id %}?q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
-                                {% csrf_token %}
-                                <button type="submit">Удалить из избранного</button>
-                            </form>
-                        {% else %}
-                            <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=vacancy.id %}?parse_from={{ vacancy.vacancy_initial_source }}&q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
-                                {% csrf_token %}
-                                <button type="submit">Добавить в избранное</button>
-                            </form>
-                        {% endif %}
+                        <h4>Задачи:</h4>
+                        <ul>
+                            {% for d in vacancy.duties %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
+                        </ul>
                     </div>
-                </div>
-                <div>
-                    <h4>Задачи:</h4>
-                    <ul>
-                        {% for d in vacancy.duties %}
-                            <li>{{ d }}</li>
+                    <div>
+                        <h4>Требования</h4>
+                        <ul>
+                        {% for req in vacancy.requirements %}
+                            <li>{{ req }}</li>
                         {% endfor %}
-                    </ul>
+                        </ul>
+                    </div>
+                    {{ vacancy.education }}
+                    {{ vacancy.place_of_work }}
+                    {{ vacancy.experience }}
+                    <div>
+                        <p><b>Фирма/компания</b> - <a href="{{ vacancy.client.url }}">{{ vacancy.firm_name }}</a></p>
+                    </div>
                 </div>
-                <div>
-                    <h4>Требования</h4>
-                    <ul>
-                    {% for req in vacancy.requirements %}
-                        <li>{{ req }}</li>
-                    {% endfor %}
-                    </ul>
+            {% elif vacancy.vacancy_initial_source == 'HH' %}
+                <div class="card">
+                    <div class="header">
+                        <h1>{{ vacancy.name }}</h1>
+                    </div>
+                    <div>
+                        <h4>Задачи:</h4>
+                        <ul>
+                            {% for d in vacancy.duties %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Требования</h4>
+                        <ul>
+                        {% for req in vacancy.requirements %}
+                            <li>{{ req }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
                 </div>
-                {{ vacancy.education }}
-                {{ vacancy.place_of_work }}
-                {{ vacancy.experience }}
-                <div>
-                    <p><b>Фирма/компания</b> - <a href="{{ vacancy.client.url }}">{{ vacancy.firm_name }}</a></p>
-                </div>
-            </div>
+            {% endif %}
         {% endfor %}
     {% else %}
         <h1>Не было найдено вакансий по вашему запросу: {{ url_params.query }}</h1>

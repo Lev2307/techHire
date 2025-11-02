@@ -4,6 +4,43 @@ import requests
 from bs4 import BeautifulSoup
 from django.core.cache import cache
 
+SECTION_DUTIES_NAMES = r'Чем предстоит заниматься[:\n]|Задачи[:\n]|Что нужно будет делать[:\n]|Что надо будет делать[:\n]|Основные задачи[:\n]|вы будете заниматься[:\n]|Обязанности[:\n]|Функциональные обязанности[:\n]|Что вы будете делать[:\n]|Ваши задачи[:\n]|Должностные обязанности[:\n]|Основные обязанности[:\n]|В ваши обязанности входит[:\n]|Вы будете заниматься[:\n]'
+SECTION_REQUIREMENTS_NAMES = r'Наши ожидания[:\n]|у Вас есть[:\n]|Что мы ждем от Вас[:\n]|Вы точно нам подходите, если вы уверенный специалист хотя бы в одной из этих областей[:\n]|Наши пожелания[:\n]|Мы ожидаем уверенные знания[:\n]|Что для нас важно[:\n]|Что мы ожидаем от кандидата[:\n]|От вас нужно[:\n]|Мы ищем кандидата, который[:\n]|Обязательные требования[:\n]|Требования[:\n]|Желательно[:\n]|Требования и навыки[:\n]|Что мы ожидаем[:\n]|Требования к кандидату[:\n]|Квалификация[:\n]|Необходимые навыки[:\n]|Опыт и навыки[:\n]|Профессиональные требования[:\n]|Ключевые требования[:\n]|Требования к соискателю[:\n]'
+
+def extract_and_reorder_text(text, sdn, srn):
+    '''
+        Функция, которая на вход получает исходный текст вакансии (HTML), достаёт из него задачи и требования из вакансии и выводит текст (HTML) в порядке:
+        1. Задачи
+        2. Требования
+        3. Оставшийся текст
+    '''
+    duties_patterns = [r'(?:' + sdn + r')[:\-\n]*']
+    requirements_patterns = [r'(?:' + srn +  r')[:\-\n]*']
+
+    responsibility_match = None
+    for pattern in duties_patterns:
+        match = re.search(pattern + r"(.*?)(?=\n\s*\n|\n(?:" + "|".join(requirements_patterns) + ")[:\-\n]*|$)", text, re.IGNORECASE | re.DOTALL)
+        if match:
+            responsibility_match = match
+            break
+
+    requirement_match = None
+    for pattern in requirements_patterns:
+        match = re.search(pattern + r"(.*?)(?=\n\s*\n|\n(?:" + "|".join(duties_patterns) + ")[:\-\n]*|$)", text, re.IGNORECASE | re.DOTALL)
+        if match:
+            requirement_match = match
+            break
+
+    responsibilities = responsibility_match.group(0).strip() if responsibility_match else ""
+    requirements = requirement_match.group(0).strip() if requirement_match else ""
+    if responsibility_match:
+        text = text[:responsibility_match.start()] + text[responsibility_match.end():]
+    if requirement_match:
+        text = text[:requirement_match.start()] + text[requirement_match.end():]
+
+    new_text = "\n\n".join(filter(None, [responsibilities, requirements, text]))
+
+    return new_text
 
 def extract_duties_and_requirements_by_keywords(text):
     '''
@@ -13,28 +50,33 @@ def extract_duties_and_requirements_by_keywords(text):
             `requirements`: [слова/предложения],
         }
     '''
-    soup = BeautifulSoup(text, 'html.parser')
-    text = soup.get_text(separator='\n', strip=True)
+    text = text.replace('<strong>', '').replace('</strong>', '')
+    text = extract_and_reorder_text(text, SECTION_DUTIES_NAMES, SECTION_REQUIREMENTS_NAMES) # получает HTML, где сначала идут задачи, потом требования
+    keywords_of_the_end_of_the_duties_or_reqs = r"Большим конкурентным преимуществом будет[:]|Будет плюсом[:]|Наши технологии[:]|Что надо будет делать[:]|Какие вещи и технологии мы используем в работе[:]|Мы ожидаем уверенные знания[:]|Условия работы[:]|Про команду и рабочие процессы|Почему стоит выбрать нас[:]|Условия[:]|Будет преимуществом[:]|Вы гарантированно получите[:]|Мы предлагаем[:]|Что мы предлагаем[:]|Что мы предлагаем[:]|Что мы ожидаем от кандидата[:]|" + SECTION_REQUIREMENTS_NAMES + r'$)'
+    
     patterns = {
         'duties': [
-            r'(?:Ваши задачи:|Задачи:|Обязанности:|Функциональные обязанности:|Что вы будете делать:|Ваши задачи:|Должностные обязанности:|Основные задачи:|Основные обязанности:|В ваши обязанности входит:|Вы будете заниматься:)[\s\S]*?(?=\n(?:Обязательные требования:|Требования:|Желательно:|Требования и навыки:|Что мы ожидаем:|Требования к кандидату:|Квалификация:|Необходимые навыки:|Опыт и навыки:|Профессиональные требования:|Ключевые требования:|Требования к соискателю:$))',
+            r'(?:' + SECTION_DUTIES_NAMES + r')' + r'[\s\S]*?(?=\n(?:' + keywords_of_the_end_of_the_duties_or_reqs + r")",
         ],
         'requirements': [
-            r'(?:Обязательные требования|Требования:|Желательно:|Требования и навыки:|Что мы ожидаем:|Требования к кандидату:|Квалификация:|Необходимые навыки:|Опыт и навыки:|Профессиональные требования:|Ключевые требования:|Требования к соискателю:)[\s\S]*?(?=\Условия:|Вы гарантированно получите:|Мы предлагаем:)',
+            r'(?:' + SECTION_REQUIREMENTS_NAMES + r')' + r'[\s\S]*?(?=\n(?:' + keywords_of_the_end_of_the_duties_or_reqs + r")",
         ],
     }
+    soup = BeautifulSoup(text, 'html.parser')
+    text = soup.get_text(separator='\n', strip=True)
+
     # Функция для извлечения списка пунктов
     def extract_items(section_text):
         if not section_text:
             return []
         section_text = re.sub(
-            r'^(?:Задачи:|Обязательные требования:|Нашими требованиями являются:|Обязанности:|Требования:|Требования и навыки:|Что мы ожидаем:|Требования к кандидату:|Квалификация:|Необходимые навыки:|Опыт и навыки:|Профессиональные требования:|Ключевые требования:|Требования к соискателю:).*?\n?',
+            r'^(?:' + SECTION_DUTIES_NAMES + '|' + SECTION_REQUIREMENTS_NAMES + ')' + r'.*?\n?',
             '',
             section_text,
             flags=re.IGNORECASE
         )
 
-        items = [item.strip() for item in re.split(r'[•\n;]', section_text) if item.strip()]
+        items = [item.strip() for item in re.split(r'[•*\n;]', section_text) if item.strip() and item != '\u200b']
         return items
 
     result = {}
