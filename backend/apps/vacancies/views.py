@@ -83,6 +83,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                         requirements=vacancy_info_from_api["reqs"],
                         payment_from=vacancy_info_from_api["payment_from"],
                         payment_to=vacancy_info_from_api["payment_to"],
+                        currency=vacancy_info_from_api["currency"],
                         experience=vacancy_info_from_api["experience"],
                         education=vacancy_info_from_api["education"],
                         place_of_work=vacancy_info_from_api["place_of_work"],

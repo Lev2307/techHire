@@ -12,11 +12,10 @@ CITY_CHOICES = [
 ]
 EXPERIENCE_CHOICES = [
     ('No exp', 'Без опыта'),
-    ('Year', 'От 1 года'),
-    ('Three years', 'От 3 лет'),
-    ('Six years', 'От 6 лет'),
+    ('Year', 'От 1 года до 3 лет'),
+    ('Three years', 'От 3 до 6 лет'),
+    ('Six years', 'Более 6 лет'),
 ]
-
 
 class Specialization(models.Model):
     name = models.CharField(max_length=45)

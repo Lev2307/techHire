@@ -42,6 +42,7 @@ class Vacancy(models.Model):
     requirements = models.TextField('Требования', max_length=2000)
     payment_from = models.PositiveIntegerField('Зп от', blank=True, null=True)
     payment_to = models.PositiveIntegerField('Зп до', blank=True, null=True)
+    currency = models.CharField("Валюта", max_length=3)
     experience = models.CharField('Опыт', choices=EXPERIENCE_CHOICES, default=EXPERIENCE_CHOICES[0][0])
     education = models.CharField('Образование', choices=EDUCATION_CHOICES, default=EDUCATION_CHOICES[0][0])
     place_of_work = models.CharField('Тип работы', choices=PLACE_OF_WORK_CHOICES, default=PLACE_OF_WORK_CHOICES[0][0])

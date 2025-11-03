@@ -4,5 +4,6 @@ Django===5.2.7
 django-redis
 djangorestframework===3.16.1
 psycopg2-binary===2.9.11
+pytz
 redis===6.4.0
 requests

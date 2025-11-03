@@ -12,13 +12,13 @@
                         <div>
                             <h1>{{ vacancy.profession }}</h1>
                             {% if vacancy.payment_from == 0 and vacancy.payment_to == 0 %}
-                                <p>По договоренности</p>
+                                <p>Уровень дохода не указан</p>
                             {% elif vacancy.payment_to == 0 %}
-                                <p>от {{ vacancy.payment_from }}₽ за месяц</p>
+                                <p>от {{ vacancy.payment_from }}{{ vacancy.currency }} за месяц</p>
                             {% elif vacancy.payment_from == 0 or vacancy.payment_from == vacancy.payment_to %}
-                                <p>до {{ vacancy.payment_to }}₽ за месяц</p>
+                                <p>до {{ vacancy.payment_to }}{{ vacancy.currency }} за месяц</p>
                             {% else %}
-                                <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}₽</p>
+                                <p>{{ vacancy.payment_from }}-{{ vacancy.payment_to }}{{ vacancy.currency }}</p>
                             {% endif %}
                         </div>
                         <div>
@@ -51,9 +51,6 @@
                         {% endfor %}
                         </ul>
                     </div>
-                    {{ vacancy.education }}
-                    {{ vacancy.place_of_work }}
-                    {{ vacancy.experience }}
                     <div>
                         <p><b>Фирма/компания</b> - <a href="{{ vacancy.client.url }}">{{ vacancy.firm_name }}</a></p>
                     </div>
@@ -62,6 +59,30 @@
                 <div class="card">
                     <div class="header">
                         <h1>{{ vacancy.name }}</h1>
+                        <div>
+                           {% if vacancy.salary == None %}
+                                <p>Уровень дохода не указан</p>
+                           {% elif vacancy.salary.to == None %}
+                                <p>от {{ vacancy.salary.from }}{{ vacancy.salary.currency }} за месяц</p>
+                            {% elif vacancy.salary.from == None %}
+                                <p>до {{ vacancy.salary.to }}{{ vacancy.salary.currency }} за месяц</p>
+                            {% else %}
+                                <p>{{ vacancy.salary.from }}-{{ vacancy.salary.to }}{{ vacancy.salary.currency }}</p>
+                           {% endif %}
+                        </div>
+                        <div>
+                            {% if vacancy.is_added_to_favorites %} 
+                                <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=vacancy.id %}?q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit">Удалить из избранного</button>
+                                </form>
+                            {% else %}
+                                <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=vacancy.id %}?parse_from={{ vacancy.vacancy_initial_source }}&q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit">Добавить в избранное</button>
+                                </form>
+                            {% endif %}
+                        </div>
                     </div>
                     <div>
                         <h4>Задачи:</h4>
@@ -78,6 +99,9 @@
                             <li>{{ req }}</li>
                         {% endfor %}
                         </ul>
+                    </div>
+                    <div>
+                        <p><b>Фирма/компания</b> - <a href="{{ vacancy.employer.alternate_url }}">{{ vacancy.employer.name }}</a></p>
                     </div>
                 </div>
             {% endif %}
