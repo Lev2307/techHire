@@ -86,19 +86,27 @@
                     </div>
                     <div>
                         <h4>Задачи:</h4>
-                        <ul>
-                            {% for d in vacancy.duties %}
-                                <li>{{ d }}</li>
-                            {% endfor %}
-                        </ul>
+                        {% if not vacancy.duties == "Отсутствует информация о задачах" %} 
+                            <ul>
+                                {% for d in vacancy.duties %}
+                                    <li>{{ d }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>Отсутствует информация о задачах</p>
+                        {% endif %}
                     </div>
                     <div>
-                        <h4>Требования</h4>
-                        <ul>
-                        {% for req in vacancy.requirements %}
-                            <li>{{ req }}</li>
-                        {% endfor %}
-                        </ul>
+                        <h4>Требования:</h4>
+                        {% if not vacancy.requirements == "Отсутствует информация о требованиях" %}
+                            <ul>
+                                {% for req in vacancy.requirements %}
+                                    <li>{{ req }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>Отсутствует информация о требованиях</p>
+                        {% endif %}
                     </div>
                     <div>
                         <p><b>Фирма/компания</b> - <a href="{{ vacancy.employer.alternate_url }}">{{ vacancy.employer.name }}</a></p>

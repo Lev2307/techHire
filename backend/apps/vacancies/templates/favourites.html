@@ -7,50 +7,97 @@
 {% block content %}
     {% if favourites %}
         {% for f in favourites %}
-            <div style="border:2px solid rebeccapurple; margin-bottom: 5px; padding: 2px;">
-                <div class="header">
+            {% if f.initial_source == "SuperJob" %}
+                <div style="border:2px solid rgb(51, 133, 153); margin-bottom: 5px; padding: 2px;">
+                    <div class="header">
+                        <div>
+                            <h1 style="color:rgb(51, 133, 153)">{{ f.title }}</h1>
+                            {% if f.payment_from == 0 and f.payment_to == 0 %}
+                                <p>По договоренности</p>
+                            {% elif f.payment_to == 0 %}
+                                <p>от {{ f.payment_from }}{{ f.currency }} за месяц</p>
+                            {% elif f.payment_from == 0 or f.payment_from == f.payment_to %}
+                                <p>до {{ f.payment_to }}{{ f.currency }} за месяц</p>
+                            {% else %}
+                                <p>{{ f.payment_from }}-{{ f.payment_to }}{{ f.currency }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                     <div>
-                        <h1 style="color:rebeccapurple">{{ f.title }}</h1>
-                        {% if f.payment_from == 0 and f.payment_to == 0 %}
-                            <p>По договоренности</p>
-                        {% elif f.payment_to == 0 %}
-                            <p>от {{ f.payment_from }}₽ за месяц</p>
-                        {% elif f.payment_from == 0 or f.payment_from == f.payment_to %}
-                            <p>до {{ f.payment_to }}₽ за месяц</p>
-                        {% else %}
-                            <p>{{ f.payment_from }}-{{ f.payment_to }}₽</p>
-                        {% endif %}
+                        <h4>Задачи:</h4>
+                        <ul>
+                            {% for d in f.duties|splitted_vacancy_field %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Требования:</h4>
+                        <ul>
+                        {% for req in f.requirements|splitted_vacancy_field %}
+                            <li>{{ req }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <h2>Опыт работы: {{ f.get_experience_display }}</h2>
+                        <h4>Образование: {{ f.get_education_display }}</h4>
+                        <h4>Вид работы: {{ f.get_place_of_work_display }}</h4>
+                    </div>
+                    <div>
+                        <a href="{{ f.original_link }}">Детальная информация о вакансии</a>
+                        <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=f.external_id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Удалить вакансию из избранного</button>
+                        </form>
                     </div>
                 </div>
-                <div>
-                    <h4>Задачи:</h4>
-                    <ul>
-                        {% for d in f.duties|splitted_vacancy_field %}
-                            <li>{{ d }}</li>
+            {% elif f.initial_source == 'HH' %}
+                <div style="border:2px solid rgb(228, 83, 46); margin-bottom: 5px; padding: 2px;">
+                    <div class="header">
+                        <div>
+                            <h1 style="color: rgb(228, 83, 46);">{{ f.title }}</h1>
+                            {% if f.payment_from == 0 and f.payment_to == 0 %}
+                                <p>Уровень дохода не указан</p>
+                            {% elif f.payment_from == 0 %}
+                                <p>до {{ f.payment_to }}{{ f.currency }} за месяц</p>
+                            {% elif f.payment_to == 0 %}
+                                <p>от {{ f.payment_from }}{{ f.currency }} за месяц</p>
+                            {% else %}
+                                <p>{{ f.payment_from }}-{{ f.payment_to }}{{ f.currency }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <h4>Задачи:</h4>
+                        <ul>
+                            {% for d in f.duties|splitted_vacancy_field %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Требования:</h4>
+                        <ul>
+                        {% for req in f.requirements|splitted_vacancy_field %}
+                            <li>{{ req }}</li>
                         {% endfor %}
-                    </ul>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2>Опыт работы: {{ f.get_experience_display }}</h2>
+                        <h4>Образование: {{ f.get_education_display }}</h4>
+                        <h4>Вид работы: {{ f.get_place_of_work_display }}</h4>
+                    </div>
+                    <div>
+                        <a href="{{ f.original_link }}">Детальная информация о вакансии</a>
+                        <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=f.external_id %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Удалить вакансию из избранного</button>
+                        </form>
+                    </div>
                 </div>
-                <div>
-                    <h4>Требования:</h4>
-                    <ul>
-                    {% for req in f.requirements|splitted_vacancy_field %}
-                        <li>{{ req }}</li>
-                    {% endfor %}
-                    </ul>
-                </div>
-                <div>
-                    <h2>Опыт работы: {{ f.get_experience_display }}</h2>
-                    <h4>Образование: {{ f.get_education_display }}</h4>
-                    <h4>Вид работы: {{ f.get_place_of_work_display }}</h4>
-                </div>
-                <div>
-                    <a href="{{ f.original_link }}">Детальная информация о вакансии</a>
-                    <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=f.external_id %}" method="post">
-                        {% csrf_token %}
-                        <button type="submit">Удалить вакансию из избранного</button>
-                    </form>
-                </div>
-            </div>
+            {% endif %}
         {% endfor %}
     {% else %}
         <h1>У вас пока что нет избранных вакансий. Можете поискать их <a href="{% url 'vacancies:recom_vacancies' %}">тут</a></h1>

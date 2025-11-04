@@ -37,6 +37,8 @@ SUPERJOB_API_HEADERS = {
     'X-Api-App-Id': SUPERJOB_API_KEY
 }
 
+NOT_FOUND_DUTIES = "Отсутствует информация о задачах"
+NOT_FOUND_REQS = "Отсутствует информация о требованиях"
 
 def get_vacancies_from_superjob_source(query, user, salary_from):
     url = f"https://api.superjob.ru/2.0/vacancies/"
@@ -85,13 +87,12 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
     vacancies = response.json().get("items")
     for vac in vacancies:
-        print(vac["id"])
         vac['vacancy_initial_source'] = INITIAL_SOURCES[1][0]
         vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])
         vacancy_desc = get_hh_vacancy_from_cache(vac["id"], HH_API_HEADERS, get_only_desc=True)
         parsed_options = extract_duties_and_requirements_by_keywords(vacancy_desc)
-        vac["duties"] = parsed_options["duties"]
-        vac["requirements"] = parsed_options["requirements"]
+        vac["duties"] = parsed_options["duties"] if parsed_options["duties"] != [] else NOT_FOUND_DUTIES
+        vac["requirements"] = parsed_options["requirements"] if parsed_options["requirements"] != [] else NOT_FOUND_REQS
 
     return vacancies
 
@@ -112,11 +113,13 @@ def get_vacancy_from_api(external_id: int, source: str):
             exp = [i[0] for i in EXPERIENCE_CHOICES_SUPERJOB if exp == i[1]][0]
             ed = [i[1] for i in EDUCATIONS_SUPERJOB if i[0] == ed][0]
             pl = [i[0] for i in PLACE_OF_WORK_CHOICES if i[1] in pl][0]
+
+
             return {
                 "initial_source": source,
                 "external_id": external_id,
-                "duties": duties,
-                "reqs": reqs,
+                "duties": duties if duties else NOT_FOUND_DUTIES,
+                "reqs": reqs if reqs else NOT_FOUND_REQS,
                 "title": data["profession"],
                 "payment_from": data["payment_from"],
                 "payment_to": data["payment_to"],
@@ -146,14 +149,20 @@ def get_vacancy_from_api(external_id: int, source: str):
             else:
                 pl = [i[1] for i in PLACE_OF_WORK_CHOICES_HH if i[0] == data["work_format"][0]["id"]][0]
 
+            if data["salary"] == None:
+                payment_from, payment_to = 0, 0
+            else:
+                payment_from = 0 if data["salary"]["from"] == None else data["salary"]["from"]
+                payment_to = 0 if data["salary"]["to"] == None else data["salary"]["to"]
+            print(duties, reqs)
             return {
                 "initial_source": source,
                 "external_id": external_id,
-                "duties": duties,
-                "reqs": reqs,
+                "duties": duties if duties else NOT_FOUND_DUTIES,
+                "reqs": reqs if reqs else NOT_FOUND_REQS,
                 "title": data["name"],
-                "payment_from": 0 if data["salary"] == None else data["salary"]["from"],
-                "payment_to": 0 if data["salary"] == None else data["salary"]["to"],
+                "payment_from": payment_from,
+                "payment_to": payment_to,
                 "currency": "RUR" if data["salary"] == None else data["salary"]["currency"],
                 "experience": exp,
                 "education": ed,
