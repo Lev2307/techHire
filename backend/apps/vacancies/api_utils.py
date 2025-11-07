@@ -1,4 +1,3 @@
-import re
 from datetime import datetime, timedelta
 
 import requests
@@ -74,7 +73,7 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     applicant_city_humanable = user.get_city_display()
     city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
     params = {
-        'per_page': 5,
+        'per_page': 15,
         'text': query,
         'area': city,
         'professional_role': ['156', '160', '10', '12', '150', '25', '165', '34', '36', '73', '155', '96', '164', '104', '157', '107', '112', '113', '148', '114', '116', '121', '124', '125', '126'],
@@ -87,6 +86,7 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
     vacancies = response.json().get("items")
     for vac in vacancies:
+        print(vac["id"])
         vac['vacancy_initial_source'] = INITIAL_SOURCES[1][0]
         vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])
         vacancy_desc = get_hh_vacancy_from_cache(vac["id"], HH_API_HEADERS, get_only_desc=True)
@@ -154,7 +154,6 @@ def get_vacancy_from_api(external_id: int, source: str):
             else:
                 payment_from = 0 if data["salary"]["from"] == None else data["salary"]["from"]
                 payment_to = 0 if data["salary"]["to"] == None else data["salary"]["to"]
-            print(duties, reqs)
             return {
                 "initial_source": source,
                 "external_id": external_id,

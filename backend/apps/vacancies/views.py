@@ -45,7 +45,7 @@ class SearchVacanciesView(LoginRequiredMixin, View):
         if query:
             founded_vacancies_by_q = get_vacancies_from_combined_api_sources(query, self.request.user, payment_from)
             res = len(founded_vacancies_by_q)
-            if not SearchHistory.objects.filter(search_query=query).exists() and res > 0:
+            if not SearchHistory.objects.filter(search_query__icontains=query).exists() and res > 0:
                 new_q = SearchHistory.objects.create(user=self.request.user, search_query=query, results=res)
                 new_q.save()
             return render(request, self.template_name, {'founded_vacancies': founded_vacancies_by_q, 'url_params': params_from_form})
