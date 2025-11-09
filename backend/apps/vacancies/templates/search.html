@@ -58,7 +58,7 @@
             {% elif vacancy.vacancy_initial_source == 'HH' %}
                 <div class="card">
                     <div class="header">
-                        <h1>{{ vacancy.name }}</h1>
+                        <h1>{{ vacancy.name }} {{ forloop.counter }} {{ vacancy.id }}</h1>
                         <div>
                            {% if vacancy.salary == None %}
                                 <p>Уровень дохода не указан</p>
@@ -66,6 +66,8 @@
                                 <p>от {{ vacancy.salary.from }}{{ vacancy.salary.currency }} за месяц</p>
                             {% elif vacancy.salary.from == None %}
                                 <p>до {{ vacancy.salary.to }}{{ vacancy.salary.currency }} за месяц</p>
+                            {% elif vacancy.salary.from == vacancy.salary.to %}
+                                <p>{{ vacancy.salary.to }}{{ vacancy.salary.currency }} за месяц</p>
                             {% else %}
                                 <p>{{ vacancy.salary.from }}-{{ vacancy.salary.to }}{{ vacancy.salary.currency }}</p>
                            {% endif %}
