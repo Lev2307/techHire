@@ -40,6 +40,7 @@ class Vacancy(models.Model):
     title = models.CharField('Название', max_length=100)
     duties = models.TextField('Задачи', max_length=1500)
     requirements = models.TextField('Требования', max_length=2000)
+    working_conditions = models.TextField('Условия работы', max_length=1500)
     payment_from = models.PositiveIntegerField('Зп от', blank=True, null=True)
     payment_to = models.PositiveIntegerField('Зп до', blank=True, null=True)
     currency = models.CharField("Валюта", max_length=3)

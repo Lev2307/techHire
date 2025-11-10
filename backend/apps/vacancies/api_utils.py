@@ -38,6 +38,8 @@ SUPERJOB_API_HEADERS = {
 
 NOT_FOUND_DUTIES = "Отсутствует информация о задачах"
 NOT_FOUND_REQS = "Отсутствует информация о требованиях"
+NOT_FOUND_WORK_COND = "Отсутствует информация об условиях работы"
+
 
 def get_vacancies_from_superjob_source(query, user, salary_from):
     url = f"https://api.superjob.ru/2.0/vacancies/"
@@ -62,8 +64,9 @@ def get_vacancies_from_superjob_source(query, user, salary_from):
         text = vac['candidat']
         parsed_options = extract_duties_and_requirements_by_keywords(text)
         del vac['candidat']
-        vac['duties'] = parsed_options['duties']
-        vac['requirements'] = parsed_options['requirements']
+        vac['duties'] = parsed_options['duties'] if parsed_options["duties"] != [] else NOT_FOUND_DUTIES
+        vac['requirements'] = parsed_options['requirements'] if parsed_options["requirements"] != [] else NOT_FOUND_REQS
+        vac["working_conditions"] = parsed_options["working_conditions"] if parsed_options["working_conditions"] != [] else NOT_FOUND_WORK_COND
         vac['vacancy_initial_source'] = INITIAL_SOURCES[0][0]
         vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])    
     return [i for i in vacancies if i not in removed_vacancies]
@@ -73,7 +76,7 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     applicant_city_humanable = user.get_city_display()
     city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
     params = {
-        'per_page': 15,
+        'per_page': 23,
         'text': query,
         'area': city,
         'professional_role': ['156', '160', '10', '12', '150', '25', '165', '34', '36', '73', '155', '96', '164', '104', '157', '107', '112', '113', '148', '114', '116', '121', '124', '125', '126'],
@@ -86,19 +89,20 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
     vacancies = response.json().get("items")
     for vac in vacancies:
-        print(vac["id"])
         vac['vacancy_initial_source'] = INITIAL_SOURCES[1][0]
         vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])
         vacancy_desc = get_hh_vacancy_from_cache(vac["id"], HH_API_HEADERS, get_only_desc=True)
         parsed_options = extract_duties_and_requirements_by_keywords(vacancy_desc)
         vac["duties"] = parsed_options["duties"] if parsed_options["duties"] != [] else NOT_FOUND_DUTIES
         vac["requirements"] = parsed_options["requirements"] if parsed_options["requirements"] != [] else NOT_FOUND_REQS
+        vac["working_conditions"] = parsed_options["working_conditions"] if parsed_options["working_conditions"] != [] else NOT_FOUND_WORK_COND
 
     return vacancies
 
 def get_vacancies_from_combined_api_sources(query: str, user: Applicant, salary_from: int) -> dict:
-    superjob_vacancies = get_vacancies_from_superjob_source(query, user, salary_from)
     headhunter_vacancies = get_vacancies_from_headhunter_source(query, user, salary_from)
+    superjob_vacancies = get_vacancies_from_superjob_source(query, user, salary_from)
+
     return headhunter_vacancies + superjob_vacancies
 
 def get_vacancy_from_api(external_id: int, source: str):
@@ -106,7 +110,7 @@ def get_vacancy_from_api(external_id: int, source: str):
         data = get_superjob_vacancy_from_cache(external_id, SUPERJOB_API_HEADERS)
         if data:
             parsed_text = extract_duties_and_requirements_by_keywords(data["candidat"])
-            duties, reqs = "; ".join(parsed_text["duties"]), "; ".join(parsed_text["requirements"])
+            duties, reqs, working_conditions = "; ".join(parsed_text["duties"]), "; ".join(parsed_text["requirements"]), "; ".join(parsed_text["working_conditions"])
 
             valid_until = datetime.fromtimestamp(data["date_pub_to"])
             exp, ed, pl = data["experience"]["title"], data["education"]["id"], data["place_of_work"]["title"]
@@ -120,6 +124,7 @@ def get_vacancy_from_api(external_id: int, source: str):
                 "external_id": external_id,
                 "duties": duties if duties else NOT_FOUND_DUTIES,
                 "reqs": reqs if reqs else NOT_FOUND_REQS,
+                "working_conditions": working_conditions if working_conditions else NOT_FOUND_WORK_COND,
                 "title": data["profession"],
                 "payment_from": data["payment_from"],
                 "payment_to": data["payment_to"],
@@ -135,7 +140,7 @@ def get_vacancy_from_api(external_id: int, source: str):
         data = get_hh_vacancy_from_cache(external_id, SUPERJOB_API_HEADERS)
         if data:
             parsed_text = extract_duties_and_requirements_by_keywords(data["description"])
-            duties, reqs = "; ".join(parsed_text["duties"]), "; ".join(parsed_text["requirements"])
+            duties, reqs, working_cond = "; ".join(parsed_text["duties"]), "; ".join(parsed_text["requirements"]), "; ".join(parsed_text["working_conditions"])
             valid_until = datetime.strptime(data["published_at"], "%Y-%m-%dT%H:%M:%S%z") + timedelta(days=30)
             exp = [i[0] for i in EXPERIENCE_CHOICES if i[1] in data["experience"]["name"]][0]
 
@@ -159,6 +164,7 @@ def get_vacancy_from_api(external_id: int, source: str):
                 "external_id": external_id,
                 "duties": duties if duties else NOT_FOUND_DUTIES,
                 "reqs": reqs if reqs else NOT_FOUND_REQS,
+                "working_conditions": working_cond if working_cond else NOT_FOUND_WORK_COND,
                 "title": data["name"],
                 "payment_from": payment_from,
                 "payment_to": payment_to,

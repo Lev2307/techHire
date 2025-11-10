@@ -37,19 +37,39 @@
                     </div>
                     <div>
                         <h4>Задачи:</h4>
-                        <ul>
-                            {% for d in vacancy.duties %}
-                                <li>{{ d }}</li>
-                            {% endfor %}
-                        </ul>
+                        {% if vacancy.duties != "Отсутствует информация о задачах" %} 
+                            <ul>
+                                {% for d in vacancy.duties %}
+                                    <li>{{ d }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>{{ vacancy.duties }}</p>
+                        {% endif %}
                     </div>
                     <div>
-                        <h4>Требования</h4>
-                        <ul>
-                        {% for req in vacancy.requirements %}
-                            <li>{{ req }}</li>
-                        {% endfor %}
-                        </ul>
+                        <h4>Требования:</h4>
+                        {% if vacancy.requirements != "Отсутствует информация о требованиях" %}
+                            <ul>
+                                {% for req in vacancy.requirements %}
+                                    <li>{{ req }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>{{ vacancy.requirements }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4>Условия работы:</h4>
+                        {% if vacancy.working_conditions != "Отсутствует информация об условиях работы" %}
+                            <ul>
+                                {% for wk_cond in vacancy.working_conditions %}
+                                    <li>{{ wk_cond }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>{{ vacancy.working_conditions }}</p>
+                        {% endif %}
                     </div>
                     <div>
                         <p><b>Фирма/компания</b> - <a href="{{ vacancy.client.url }}">{{ vacancy.firm_name }}</a></p>
@@ -88,26 +108,38 @@
                     </div>
                     <div>
                         <h4>Задачи:</h4>
-                        {% if not vacancy.duties == "Отсутствует информация о задачах" %} 
+                        {% if vacancy.duties != "Отсутствует информация о задачах" %} 
                             <ul>
                                 {% for d in vacancy.duties %}
                                     <li>{{ d }}</li>
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            <p>Отсутствует информация о задачах</p>
+                            <p>{{ vacancy.duties }}</p>
                         {% endif %}
                     </div>
                     <div>
                         <h4>Требования:</h4>
-                        {% if not vacancy.requirements == "Отсутствует информация о требованиях" %}
+                        {% if vacancy.requirements != "Отсутствует информация о требованиях" %}
                             <ul>
                                 {% for req in vacancy.requirements %}
                                     <li>{{ req }}</li>
                                 {% endfor %}
                             </ul>
                         {% else %}
-                            <p>Отсутствует информация о требованиях</p>
+                            <p>{{ vacancy.requirements }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4>Условия работы:</h4>
+                        {% if vacancy.working_conditions != "Отсутствует информация об условиях работы" %}
+                            <ul>
+                                {% for wk_cond in vacancy.working_conditions %}
+                                    <li>{{ wk_cond }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p>{{ vacancy.working_conditions }}</p>
                         {% endif %}
                     </div>
                     <div>
