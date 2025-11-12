@@ -1,9 +1,10 @@
+import urllib.parse
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, HttpResponseRedirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.views import generic, View
 
-from ..accounts.models import Applicant
 from .api_utils import get_vacancies_from_combined_api_sources, get_vacancy_from_api
 from .models import Vacancy, SearchHistory, INITIAL_SOURCES
 
@@ -57,7 +58,7 @@ class FavouriteVacanciesList(LoginRequiredMixin, generic.ListView):
     context_object_name = "favourites"
 
     def get_queryset(self):
-        return self.model.objects.filter(user=self.request.user)
+        return self.model.objects.filter(user=self.request.user, is_archived=False)
     
 class AddVacancyToFavourites(LoginRequiredMixin, View):
     model = Vacancy
@@ -67,7 +68,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
         vac_api_id = self.kwargs['pk']
         vac_source = request.GET.get('parse_from', '')
         url_params = {
-            'vacancy_name': request.GET.get('q'),
+            'vacancy_name': urllib.parse.quote_plus(request.GET.get('q')),
             'payment_from': request.GET.get('pf')
         }
         if vac_source in list([i[0] for i in INITIAL_SOURCES]):
@@ -91,7 +92,6 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                         valid_until=vacancy_info_from_api["valid_until"],
                         original_link=vacancy_info_from_api["link"]
                     )
-                    vac.save()
                     print(reverse('vacancies:search_vacancies', query=url_params))
                     return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
                 return HttpResponse('Wrong vacancy id!')
@@ -108,7 +108,7 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     def get_success_url(self):
         if self.request.GET.get('q') != None and self.request.GET.get('pf') != None:
             url_params = {
-                'vacancy_name': self.request.GET.get('q'),
+                'vacancy_name': urllib.parse.quote_plus(self.request.GET.get('q')),
                 'payment_from': self.request.GET.get('pf')
             }
             return reverse_lazy("vacancies:search_vacancies", query=url_params)

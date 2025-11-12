@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 
 from ..accounts.models import Applicant, EXPERIENCE_CHOICES
+from .tasks import make_vacancy_archived_task
 
 INITIAL_SOURCES = [
     ('SuperJob', 'SuperJob'),
@@ -50,6 +51,7 @@ class Vacancy(models.Model):
     valid_until = models.DateTimeField('Вакансия действительна до')
     original_link = models.URLField('Ссылка на вакансию', max_length=150) 
     date_added = models.DateTimeField('Время добавления', auto_now=True)
+    is_archived = models.BooleanField(default=False) # статус действительности вакансии (возможно потом сделаю просто удаление её, если она не ликвидна уже)
     firm = models.ForeignKey(Firm, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
@@ -57,6 +59,10 @@ class Vacancy(models.Model):
         
     def __str__(self):
         return self.title
+    
+    def save(self, *args, **kwargs):
+        make_vacancy_archived_task.apply_async(args=(self.id, ), eta=self.valid_until)
+        super().save(*args, **kwargs)
 
 class SearchHistory(models.Model):
     user = models.ForeignKey(Applicant, on_delete=models.CASCADE)

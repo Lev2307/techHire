@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import requests
 
@@ -89,6 +89,7 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
     vacancies = response.json().get("items")
     for vac in vacancies:
+        print(vac)
         vac['vacancy_initial_source'] = INITIAL_SOURCES[1][0]
         vac['is_added_to_favorites'] = Vacancy.objects.filter(external_id=vac["id"])
         vacancy_desc = get_hh_vacancy_from_cache(vac["id"], HH_API_HEADERS, get_only_desc=True)
@@ -141,7 +142,7 @@ def get_vacancy_from_api(external_id: int, source: str):
         if data:
             parsed_text = extract_duties_and_requirements_by_keywords(data["description"])
             duties, reqs, working_cond = "; ".join(parsed_text["duties"]), "; ".join(parsed_text["requirements"]), "; ".join(parsed_text["working_conditions"])
-            valid_until = datetime.strptime(data["published_at"], "%Y-%m-%dT%H:%M:%S%z") + timedelta(days=30)
+            valid_until = datetime.strptime(data["published_at"], "%Y-%m-%dT%H:%M:%S%z")
             exp = [i[0] for i in EXPERIENCE_CHOICES if i[1] in data["experience"]["name"]][0]
 
             if not data.get("education"):
