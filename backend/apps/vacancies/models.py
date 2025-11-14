@@ -17,11 +17,20 @@ EDUCATION_CHOICES = [
     ('Secondary_special', 'Средне-специальное'),
     ('Secondary', 'Среднее'),
 ]
-PLACE_OF_WORK_CHOICES = [
-    ('office', 'Очная'),
-    ('remote', 'Удалённая'),
-    ('not specified', 'Не имеет значения')
+
+WORK_FORMAT_CHOICES = [
+    ('Not specified', 'Не имеет значения'),
+    ('ON_SITE', 'Очная'),
+    ('REMOTE', 'Удалённая'),
+    ('HYBRID', 'Гибрид')
 ]
+
+class WorkFormat(models.Model):
+    name = models.CharField(max_length=50)
+    name_eng = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
 
 class Firm(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -47,11 +56,11 @@ class Vacancy(models.Model):
     currency = models.CharField("Валюта", max_length=3)
     experience = models.CharField('Опыт', choices=EXPERIENCE_CHOICES, default=EXPERIENCE_CHOICES[0][0])
     education = models.CharField('Образование', choices=EDUCATION_CHOICES, default=EDUCATION_CHOICES[0][0])
-    place_of_work = models.CharField('Тип работы', choices=PLACE_OF_WORK_CHOICES, default=PLACE_OF_WORK_CHOICES[0][0])
+    work_format = models.ManyToManyField(WorkFormat)
     valid_until = models.DateTimeField('Вакансия действительна до')
     original_link = models.URLField('Ссылка на вакансию', max_length=150) 
     date_added = models.DateTimeField('Время добавления', auto_now=True)
-    is_archived = models.BooleanField(default=False) # статус действительности вакансии (возможно потом сделаю просто удаление её, если она не ликвидна уже)
+    is_archived = models.BooleanField(default=False) # статус действительности вакансии (возможно потом сделаю просто удаление её, если она уже не является ликвидной )
     firm = models.ForeignKey(Firm, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:

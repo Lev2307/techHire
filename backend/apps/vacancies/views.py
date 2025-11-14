@@ -88,11 +88,10 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                         currency=vacancy_info_from_api["currency"],
                         experience=vacancy_info_from_api["experience"],
                         education=vacancy_info_from_api["education"],
-                        place_of_work=vacancy_info_from_api["place_of_work"],
                         valid_until=vacancy_info_from_api["valid_until"],
                         original_link=vacancy_info_from_api["link"]
                     )
-                    print(reverse('vacancies:search_vacancies', query=url_params))
+                    vac.work_format.add(*vacancy_info_from_api["work_format"])
                     return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
                 return HttpResponse('Wrong vacancy id!')
             return HttpResponse('Was already added to favorites!')
