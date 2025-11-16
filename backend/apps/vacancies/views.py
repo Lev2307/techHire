@@ -6,7 +6,7 @@ from django.urls import reverse, reverse_lazy
 from django.views import generic, View
 
 from .api_utils import get_vacancies_from_combined_api_sources, get_vacancy_from_api
-from .models import Vacancy, SearchHistory, INITIAL_SOURCES
+from .models import Vacancy, Firm, SearchHistory, INITIAL_SOURCES
 
 # Create your views here.
 class HomeView(generic.TemplateView):
@@ -81,17 +81,26 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                         external_id=vac_api_id,
                         title=vacancy_info_from_api["title"],
                         duties=vacancy_info_from_api["duties"],
-                        requirements=vacancy_info_from_api["reqs"],
+                        requirements=vacancy_info_from_api["requirements"],
                         working_conditions=vacancy_info_from_api["working_conditions"],
-                        payment_from=vacancy_info_from_api["payment_from"],
-                        payment_to=vacancy_info_from_api["payment_to"],
-                        currency=vacancy_info_from_api["currency"],
+                        payment_from=vacancy_info_from_api["payment"]["payment_from"],
+                        payment_to=vacancy_info_from_api["payment"]["payment_to"],
+                        currency=vacancy_info_from_api["payment"]["currency"],
                         experience=vacancy_info_from_api["experience"],
                         education=vacancy_info_from_api["education"],
+                        date_published=vacancy_info_from_api["date_published"],
                         valid_until=vacancy_info_from_api["valid_until"],
-                        original_link=vacancy_info_from_api["link"]
+                        original_link=vacancy_info_from_api["original_link"]
                     )
-                    vac.work_format.add(*vacancy_info_from_api["work_format"])
+                    vac.work_format.add(*vacancy_info_from_api["work_formats"])
+
+                    if not Firm.objects.filter(name=vacancy_info_from_api["employer"]["name"]).exists():
+                        firm = Firm.objects.create(
+                            name=vacancy_info_from_api["employer"]["name"],
+                            address=vacancy_info_from_api["employer"]["address"],
+                            link=vacancy_info_from_api["employer"]["alternate_url"],
+                        )
+                        firm.save()
                     return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
                 return HttpResponse('Wrong vacancy id!')
             return HttpResponse('Was already added to favorites!')

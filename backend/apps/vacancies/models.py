@@ -1,6 +1,7 @@
 import uuid
 
 from django.db import models
+from django.utils import timezone
 
 from ..accounts.models import Applicant, EXPERIENCE_CHOICES
 from .tasks import make_vacancy_archived_task
@@ -34,10 +35,9 @@ class WorkFormat(models.Model):
 
 class Firm(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField('Название', max_length=50)
-    activity = models.TextField('Род деятельности', max_length=150)
-    address = models.CharField('Адрес', max_length=100)
-    link = models.URLField('Ссылка', max_length=50)
+    name = models.CharField('Название', max_length=100)
+    address = models.CharField('Адрес', max_length=150)
+    link = models.URLField('Ссылка', max_length=100)
 
     def __str__(self):
         return self.name
@@ -57,6 +57,7 @@ class Vacancy(models.Model):
     experience = models.CharField('Опыт', choices=EXPERIENCE_CHOICES, default=EXPERIENCE_CHOICES[0][0])
     education = models.CharField('Образование', choices=EDUCATION_CHOICES, default=EDUCATION_CHOICES[0][0])
     work_format = models.ManyToManyField(WorkFormat)
+    date_published = models.DateTimeField('Дата опубликования вакансии')
     valid_until = models.DateTimeField('Вакансия действительна до')
     original_link = models.URLField('Ссылка на вакансию', max_length=150) 
     date_added = models.DateTimeField('Время добавления', auto_now=True)
