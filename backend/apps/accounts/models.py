@@ -11,7 +11,7 @@ CITY_CHOICES = [
     ('Saint Petersburg', 'Санкт-Петербург')
 ]
 EXPERIENCE_CHOICES = [
-    ('No exp', 'Без опыта'),
+    ('No exp', 'Нет опыта'),
     ('Year', 'От 1 года до 3 лет'),
     ('Three years', 'От 3 до 6 лет'),
     ('Six years', 'Более 6 лет'),
