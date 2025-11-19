@@ -30,7 +30,6 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         if _ == superjob_vacancy_data["place_of_work"]["id"]:
             work_format_values.append(WorkFormat.objects.get(name_eng=WORK_FORMAT_CHOICES[_][0]))
     employer = superjob_vacancy_data["client"]
-
     return {
         'external_id': superjob_vacancy_data["id"],
         'title': superjob_vacancy_data["profession"],
@@ -48,9 +47,9 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         'is_added_to_favorites': Vacancy.objects.filter(external_id=superjob_vacancy_data["id"]).exists(),
         'initial_source': INITIAL_SOURCES[1][0],
         'employer': {
-            'name': employer["name"],
+            'name': employer["title"],
             'address': "Адрес компании не предоставлен" if superjob_vacancy_data["address"] == None else superjob_vacancy_data["address"],
-            'url': employer["alternate_url"],
+            'url': employer["link"],
         }
     }
 

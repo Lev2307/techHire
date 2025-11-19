@@ -6,7 +6,7 @@
             <h1>Поиск:</h1>
             <form action="{% url 'vacancies:search_vacancies' %}" method="get">
                 {% csrf_token %}
-                <input type="text" name="vacancy_name" id="vacancy_name" maxlength="70" placeholder="Профессия, должность" required>
+                <input type="text" name="query" id="query" maxlength="70" placeholder="Профессия, должность" required>
                 <input type="number" name="payment_from" id="payment_from" placeholder="Зарплата ">
                 <button type="submit">Поиск вакансий</button>
             </form>

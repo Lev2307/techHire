@@ -17,14 +17,14 @@ class Command(BaseCommand):
             for t in TECHNOLOGIES_LIST:
                 technology = Technology.objects.create(name=t)
                 technology.save()
-            self.stdout.write(self.style.SUCCESS('Начальные данные для специализаций и инструментов созданы!'))
+            print('Начальные данные для специализаций и инструментов созданы!')
         else:
-            self.stdout.write(self.style.WARNING('Модели специализаций и инструментов уже были созданы )'))
+            print('Модели специализаций и инструментов уже были созданы ))')
 
         if not WorkFormat.objects.exists():
             for wf in WORK_FORMAT_CHOICES:
                 work_format = WorkFormat.objects.create(name_eng=wf[0], name=wf[1])
                 work_format.save()
-            self.stdout(self.style.SUCCESS('Начальные данные для формата работы созданы!'))
+            print('Начальные данные для формата работы созданы!')
         else:
-            self.stdout.write(self.style.WARNING('Начальные данные для формата работы уже были созданы )'))
+            print('Начальные данные для формата работы уже были созданы ))')

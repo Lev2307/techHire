@@ -1,5 +1,6 @@
 import urllib.parse
 
+from django.db.models.expressions import RawSQL
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render, HttpResponseRedirect, HttpResponse
 from django.urls import reverse, reverse_lazy
@@ -36,7 +37,7 @@ class SearchVacanciesView(LoginRequiredMixin, View):
     login_url = reverse_lazy("accounts:login")
 
     def get(self, request, *args, **kwargs):
-        query = request.GET.get('vacancy_name', '')
+        query = request.GET.get('query', '')
         payment_from = request.GET.get('payment_from')
         payment_from = int(payment_from) if payment_from else 0
         params_from_form = {
@@ -44,10 +45,11 @@ class SearchVacanciesView(LoginRequiredMixin, View):
             'payment_from': payment_from
         }
         if query:
+            query = query.lower()
             founded_vacancies_by_q = get_vacancies_from_combined_api_sources(query, self.request.user, payment_from)
-            res = len(founded_vacancies_by_q)
-            if not SearchHistory.objects.filter(search_query__icontains=query).exists() and res > 0:
-                new_q = SearchHistory.objects.create(user=self.request.user, search_query=query, results=res)
+            results_count = len(founded_vacancies_by_q)
+            if not SearchHistory.objects.filter(user=self.request.user).annotate(is_match=RawSQL("(%s ILIKE '%%' || search_query || '%%') OR (search_query ILIKE '%%' || %s || '%%')", [query, query])).filter(is_match=True).exists() and results_count > 0:
+                new_q = SearchHistory.objects.create(user=self.request.user, search_query=query, results=results_count)
                 new_q.save()
             return render(request, self.template_name, {'founded_vacancies': founded_vacancies_by_q, 'url_params': params_from_form})
         return HttpResponseRedirect(reverse('vacancies:recom_vacancies'))
@@ -56,6 +58,7 @@ class FavouriteVacanciesList(LoginRequiredMixin, generic.ListView):
     model = Vacancy
     template_name = "favourites.html"
     context_object_name = "favourites"
+    login_url = reverse_lazy("accounts:login")
 
     def get_queryset(self):
         return self.model.objects.filter(user=self.request.user, is_archived=False)
@@ -68,7 +71,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
         vac_api_id = self.kwargs['pk']
         vac_source = request.GET.get('parse_from', '')
         url_params = {
-            'vacancy_name': urllib.parse.quote_plus(request.GET.get('q')),
+            'query': urllib.parse.quote_plus(request.GET.get('q')),
             'payment_from': request.GET.get('pf')
         }
         if vac_source in list([i[0] for i in INITIAL_SOURCES]):
@@ -123,7 +126,7 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     def get_success_url(self):
         if self.request.GET.get('q') != None and self.request.GET.get('pf') != None:
             url_params = {
-                'vacancy_name': urllib.parse.quote_plus(self.request.GET.get('q')),
+                'query': urllib.parse.quote_plus(self.request.GET.get('q')),
                 'payment_from': self.request.GET.get('pf')
             }
             return reverse_lazy("vacancies:search_vacancies", query=url_params)
