@@ -46,12 +46,12 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
         }
     }
 
-def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int) -> dict:
+def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, count=30) -> dict:
     """Получает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
     applicant_city_humanable = user.get_city_display()
     city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
     params = {
-        'per_page': 23,
+        'per_page': count,
         'text': query,
         'area': city,
         'professional_role': ['156', '160', '10', '12', '150', '25', '165', '34', '36', '73', '155', '96', '164', '104', '157', '107', '112', '113', '148', '114', '116', '121', '124', '125', '126'],

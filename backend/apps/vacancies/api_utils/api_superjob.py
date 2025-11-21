@@ -53,13 +53,13 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         }
     }
 
-def get_vacancies_from_superjob_source(query, user, salary_from):
-    """Получает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
+def get_vacancies_from_superjob_source(query, user, salary_from, count=30):
+    """Получает вакансии с api Superjob, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
     
     url = f"https://api.superjob.ru/2.0/vacancies/"
     city = get_user_city_info_from_cache_superjob(user.get_city_display(), SUPERJOB_API_HEADERS)
     params = {
-        'count': 10,
+        'count': count,
         'order_field': 'relevance',
         'sort_new': 1,
         'keywords': query,

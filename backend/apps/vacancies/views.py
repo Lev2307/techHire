@@ -71,7 +71,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
         vac_api_id = self.kwargs['pk']
         vac_source = request.GET.get('parse_from', '')
         url_params = {
-            'query': urllib.parse.quote_plus(request.GET.get('q')),
+            'query': urllib.parse.unquote_plus(request.GET.get('q')),
             'payment_from': request.GET.get('pf')
         }
         if vac_source in list([i[0] for i in INITIAL_SOURCES]):
@@ -126,7 +126,7 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     def get_success_url(self):
         if self.request.GET.get('q') != None and self.request.GET.get('pf') != None:
             url_params = {
-                'query': urllib.parse.quote_plus(self.request.GET.get('q')),
+                'query': urllib.parse.unquote_plus(self.request.GET.get('q')),
                 'payment_from': self.request.GET.get('pf')
             }
             return reverse_lazy("vacancies:search_vacancies", query=url_params)
@@ -135,8 +135,11 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     
     def dispatch(self, request, *args, **kwargs):
         obj = self.get_object()
-        if obj.user != self.request.user:
-            return self.handle_vacancy_not_found()
+        if self.request.user.is_authenticated:
+            if obj.user != self.request.user:
+                return self.handle_vacancy_not_found()
+        else:
+            return self.handle_no_permission()
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
