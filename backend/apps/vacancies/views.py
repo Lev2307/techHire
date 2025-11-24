@@ -48,7 +48,7 @@ class SearchVacanciesView(LoginRequiredMixin, View):
             query = query.lower()
             founded_vacancies_by_q = get_vacancies_from_combined_api_sources(query, self.request.user, payment_from)
             results_count = len(founded_vacancies_by_q)
-            if not SearchHistory.objects.filter(user=self.request.user).annotate(is_match=RawSQL("(%s ILIKE '%%' || search_query || '%%') OR (search_query ILIKE '%%' || %s || '%%')", [query, query])).filter(is_match=True).exists() and results_count > 0:
+            if not SearchHistory.objects.filter(user=self.request.user).annotate(is_match=RawSQL("search_query ILIKE '%%' || %s || '%%'", [query])).filter(is_match=True).exists() and results_count > 0:
                 new_q = SearchHistory.objects.create(user=self.request.user, search_query=query, results=results_count)
                 new_q.save()
             return render(request, self.template_name, {'founded_vacancies': founded_vacancies_by_q, 'url_params': params_from_form})

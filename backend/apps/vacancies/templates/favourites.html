@@ -46,7 +46,7 @@
                     </div>
                     <div>
                         <a href="{{ f.original_link }}">Детальная информация о вакансии</a>
-                        <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=f.external_id %}" method="post">
+                        <form action="{% url 'vacancies:remove_vacancy_from_favourites' pk=f.external_id %}" method="post">
                             {% csrf_token %}
                             <button type="submit">Удалить вакансию из избранного</button>
                         </form>
@@ -91,7 +91,7 @@
                     </div>
                     <div>
                         <a href="{{ f.original_link }}">Детальная информация о вакансии</a>
-                        <form action="{% url 'vacancies:remove_vacancy_from_favorites' pk=f.external_id %}" method="post">
+                        <form action="{% url 'vacancies:remove_vacancy_from_favourites' pk=f.external_id %}" method="post">
                             {% csrf_token %}
                             <button type="submit">Удалить вакансию из избранного</button>
                         </form>
