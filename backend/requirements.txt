@@ -4,6 +4,7 @@ Django===5.2.7
 django-redis
 djangorestframework===3.16.1
 emoji
+forex-python
 psycopg2-binary===2.9.11
 pytz
 redis===6.4.0

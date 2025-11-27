@@ -47,7 +47,7 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
     }
 
 def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, count=30) -> dict:
-    """Получает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
+    """Возвращает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
     applicant_city_humanable = user.get_city_display()
     city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
     params = {
@@ -57,6 +57,9 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
         'professional_role': ['156', '160', '10', '12', '150', '25', '165', '34', '36', '73', '155', '96', '164', '104', '157', '107', '112', '113', '148', '114', '116', '121', '124', '125', '126'],
         'order_by': 'relevance'
     }
+    if not query:
+        del params['text']
+
     if salary_from:
         params["salary"] = salary_from
         params["only_with_salary"] = True
@@ -74,7 +77,7 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
 
 
 def get_hh_vacancy_data_from_api(external_id: str):
-    """Получает данные о конкретной вакансии из api HH.ru и передаёт их во вью"""
+    """Возвращает данные о конкретной вакансии из api HH.ru и передаёт их во вью"""
     data = get_hh_vacancy_from_cache(external_id, HH_API_HEADERS)
     if data:
         parsed_text = extract_duties_requirements_working_conditions_by_keywords(data["description"])

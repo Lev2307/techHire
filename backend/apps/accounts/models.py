@@ -69,6 +69,7 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
     )
     specializations = models.ManyToManyField(Specialization)
     technologies = models.ManyToManyField(Technology)
+    preferred_work_format = models.ManyToManyField('vacancies.WorkFormat')
     linked_telegram = models.OneToOneField(ApplicantLinkedTelegram, on_delete=models.CASCADE, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
 

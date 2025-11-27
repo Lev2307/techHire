@@ -2,6 +2,7 @@ from datetime import datetime
 
 import requests
 
+from apps.accounts.models import Applicant
 from ..cache import get_user_city_info_from_cache_superjob, get_superjob_vacancy_from_cache
 from ..helpers import extract_duties_requirements_working_conditions_by_keywords
 from ..models import Vacancy, WorkFormat, EXPERIENCE_CHOICES, WORK_FORMAT_CHOICES, INITIAL_SOURCES
@@ -53,8 +54,8 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         }
     }
 
-def get_vacancies_from_superjob_source(query, user, salary_from, count=30):
-    """Получает вакансии с api Superjob, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
+def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from: int, count=30) -> dict:
+    """Возвращает вакансии с api Superjob, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
     
     url = f"https://api.superjob.ru/2.0/vacancies/"
     city = get_user_city_info_from_cache_superjob(user.get_city_display(), SUPERJOB_API_HEADERS)
@@ -67,7 +68,9 @@ def get_vacancies_from_superjob_source(query, user, salary_from, count=30):
         'payment_from': salary_from,
         't': city,
     }
-    if salary_from < 50_000:
+    if not query:
+        del params["keywords"]
+    if salary_from == 0:
         del params['payment_from']
 
     response = requests.get(url, headers=SUPERJOB_API_HEADERS, params=params)
@@ -81,8 +84,8 @@ def get_vacancies_from_superjob_source(query, user, salary_from, count=30):
         vacancies[i] = vacancy_overrided
     return vacancies
 
-def get_superjob_vacancy_data_from_api(external_id: str):
-    """Получает данные о конкретной вакансии из api Superjob и передаёт их во вью"""
+def get_superjob_vacancy_data_from_api(external_id: str) -> dict:
+    """Возвращает данные о конкретной вакансии из api Superjob и передаёт их во вью"""
     data = get_superjob_vacancy_from_cache(external_id, SUPERJOB_API_HEADERS)
     if data:
         parsed_text = extract_duties_requirements_working_conditions_by_keywords(data["candidat"])
@@ -100,4 +103,4 @@ def get_superjob_vacancy_data_from_api(external_id: str):
         returned_data["valid_until"] = valid_until
         returned_data["original_link"] = data["link"]
         return returned_data
-    return 'Error'
+    return {}
