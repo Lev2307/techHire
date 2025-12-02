@@ -131,10 +131,10 @@ SPECIALIZATIONS_LIST = [
     'Мобильная разработка (IOS/Android)', 
     'Машинное обучение / Нейросети',
     'ML-инженер',
-    'Data-инженер'
+    'Data-инженер',
     'Data Science',
     'Big Data',
-    'DevOps', 
+    'DevOps. CI/CD', 
     'Системный аналитик',
     'QA / Тестирование',
     'Кибербезопасность',
@@ -154,17 +154,21 @@ TECHNOLOGIES_LIST = [
     'Flutter',
     'Java',
     'Go',
+    'PHP',
     'HTML, CSS',
     'React, Vue, Angular',
     'Git',
     'Docker, Kubernetes',
-    'SQL (MySQL)',
+    'SQL (MySQL, PostgreSQL)',
     'NoSQL (MongoDB)',
     'Elasticsearch',
-    'Apache Kafka',
-    'Чат-боты (ChatGPT, Gemini, Grok и т.д)',
-    'NLTK, TensorFlow, Scikit-learn (ML-модули)',
+    'MLOps (ClearML, MLFlow)',
+    'AI-ассистенты (ChatGPT, Gemini, Grok и т.д)',
+    'ML-модули: NLTK, TensorFlow, Scikit-learn и др.',
+    'Технологии машинного обучения: NLP, CV, LLM и др.'
     '1C',
+    'GraphQL / REST',
+    'Брокеры сообщений (Redis / RabbitMQ / Kafka)',
 ]
 
 SUPERJOB_API_KEY = os.environ.get('SUPERJOB_API_SECRET_KEY')

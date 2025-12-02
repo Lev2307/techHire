@@ -1,11 +1,14 @@
 bs4
 celery===5.5.3
+scikit-learn
 Django===5.2.7
 django-redis
 djangorestframework===3.16.1
 emoji
 forex-python
+nltk
 psycopg2-binary===2.9.11
 pytz
+rake-nltk===1.0.6
 redis===6.4.0
 requests

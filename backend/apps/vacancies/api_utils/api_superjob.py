@@ -31,6 +31,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         if _ == superjob_vacancy_data["place_of_work"]["id"]:
             work_format_values.append(WorkFormat.objects.get(name_eng=WORK_FORMAT_CHOICES[_][0]))
     employer = superjob_vacancy_data["client"]
+    experience =  [_ for _ in EXPERIENCE_CHOICES_SUPERJOB if superjob_vacancy_data["experience"]["title"] == _[1]][0]
     return {
         'external_id': superjob_vacancy_data["id"],
         'title': superjob_vacancy_data["profession"],
@@ -43,10 +44,11 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
             'currency': "RUR",
         },
         'work_formats': work_format_values,
-        'experience': [_[1] for _ in EXPERIENCE_CHOICES_SUPERJOB if superjob_vacancy_data["experience"]["title"] == _[1]][0],
+        'experience': experience[0],
+        'experience_ru': experience[1],
         'date_published': datetime.fromtimestamp(superjob_vacancy_data["date_published"]),
         'is_added_to_favorites': Vacancy.objects.filter(external_id=superjob_vacancy_data["id"]).exists(),
-        'initial_source': INITIAL_SOURCES[1][0],
+        'initial_source': INITIAL_SOURCES[0][0],
         'employer': {
             'name': employer["title"],
             'address': "Адрес компании не предоставлен" if superjob_vacancy_data["address"] == None else superjob_vacancy_data["address"],
@@ -54,7 +56,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         }
     }
 
-def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from: int, count=30) -> dict:
+def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from: int, count=30) -> list:
     """Возвращает вакансии с api Superjob, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
     
     url = f"https://api.superjob.ru/2.0/vacancies/"

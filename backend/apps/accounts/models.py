@@ -18,7 +18,7 @@ EXPERIENCE_CHOICES = [
 ]
 
 class Specialization(models.Model):
-    name = models.CharField(max_length=45)
+    name = models.CharField(max_length=60)
 
     class Meta:
         verbose_name = 'Specialization'
@@ -28,7 +28,7 @@ class Specialization(models.Model):
         return self.name
 
 class Technology(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=60)
 
     class Meta:
         verbose_name = 'Technology'

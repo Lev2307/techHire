@@ -19,10 +19,9 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
                     work_format_values.append(WorkFormat.objects.get(name_eng=wf_choice[0]))
     else:
         work_format_values = [WorkFormat.objects.get(name_eng=WORK_FORMAT_CHOICES[0][0])]
-
+    experience = [i for i in EXPERIENCE_CHOICES if i[1] == hh_vacancy_data["experience"]["name"]][0]
     employer = hh_vacancy_data["employer"]
     address = "Адрес компании не предоставлен" if not hh_vacancy_data["address"] else hh_vacancy_data["address"]["raw"]
-
     return {
         'external_id': hh_vacancy_data["id"],
         'title': hh_vacancy_data["name"],
@@ -35,18 +34,19 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
             'currency': "RUR" if hh_vacancy_data["salary"] == None else hh_vacancy_data["salary"]["currency"],
         },
         'work_formats': work_format_values,
-        'experience': [i[0] for i in EXPERIENCE_CHOICES if i[1] == hh_vacancy_data["experience"]["name"]][0],
+        'experience': experience[0],
+        'experience_ru': experience[1],
         'date_published': datetime.strptime(hh_vacancy_data["created_at"], "%Y-%m-%dT%H:%M:%S%z"),
         'is_added_to_favorites': Vacancy.objects.filter(external_id=hh_vacancy_data["id"]).exists(),
         'initial_source': INITIAL_SOURCES[1][0],
         'employer': {
             'name': employer["name"],
             'address': address,
-            'alternate_url': employer["alternate_url"],
+            'alternate_url': employer['alternate_url'] if employer.get('alternate_url') else '',
         }
     }
 
-def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, count=30) -> dict:
+def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, count=30) -> list:
     """Возвращает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
     applicant_city_humanable = user.get_city_display()
     city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
@@ -76,7 +76,7 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     return vacancies
 
 
-def get_hh_vacancy_data_from_api(external_id: str):
+def get_hh_vacancy_data_from_api(external_id: str) -> dict:
     """Возвращает данные о конкретной вакансии из api HH.ru и передаёт их во вью"""
     data = get_hh_vacancy_from_cache(external_id, HH_API_HEADERS)
     if data:
