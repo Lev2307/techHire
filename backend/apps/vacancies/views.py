@@ -26,14 +26,13 @@ class HomeView(generic.TemplateView):
         return c
 
 class RecommendedVacanciesView(LoginRequiredMixin, View):
-    template_name = 'vacancies.html'
+    template_name = 'recommended_vacancies.html'
     login_url = reverse_lazy("accounts:login")
 
     def get(self, request, *args, **kwargs):
         recommended = get_recommended_vacancies_by_content(self.request.user)
-        print(recommended)
         print(len(recommended))
-        return render(request, self.template_name)
+        return render(request, self.template_name, {'recommended_vacancies': recommended})
 
 class SearchVacanciesView(LoginRequiredMixin, View):
     template_name = 'search.html'
@@ -85,7 +84,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                     vacancy_info_from_api = get_hh_vacancy_data_from_api(vac_api_id)
                 if vacancy_info_from_api:
                     # creating firm if not existed
-                    if not Firm.objects.filter(name=vacancy_info_from_api["employer"]["name"]).exists():
+                    if not Firm.objects.filter(name=vacancy_info_from_api["employer"]["name"]).exists() and vacancy_info_from_api["employer"]["name"] != "":
                         firm = Firm.objects.create(
                             name=vacancy_info_from_api["employer"]["name"],
                             address=vacancy_info_from_api["employer"]["address"],

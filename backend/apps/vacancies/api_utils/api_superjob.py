@@ -17,10 +17,10 @@ EDUCATIONS_SUPERJOB = [
     (6, 'Student', 'Учащийся'),
 ]
 EXPERIENCE_CHOICES_SUPERJOB = [
-    (EXPERIENCE_CHOICES[0][0], 'Без опыта'),
-    (EXPERIENCE_CHOICES[1][0], 'От 1 года'),
-    (EXPERIENCE_CHOICES[2][0], 'От 3 лет'),
-    (EXPERIENCE_CHOICES[3][0], 'От 6 лет'),
+    (EXPERIENCE_CHOICES[0][0], 'Без опыта', EXPERIENCE_CHOICES[0][1]),
+    (EXPERIENCE_CHOICES[1][0], 'От 1 года', EXPERIENCE_CHOICES[1][1]),
+    (EXPERIENCE_CHOICES[2][0], 'От 3 лет', EXPERIENCE_CHOICES[2][1]),
+    (EXPERIENCE_CHOICES[3][0], 'От 6 лет', EXPERIENCE_CHOICES[3][1]),
 ]
 
 def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dict) -> dict:
@@ -45,14 +45,14 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         },
         'work_formats': work_format_values,
         'experience': experience[0],
-        'experience_ru': experience[1],
+        'experience_ru': experience[2],
         'date_published': datetime.fromtimestamp(superjob_vacancy_data["date_published"]),
         'is_added_to_favorites': Vacancy.objects.filter(external_id=superjob_vacancy_data["id"]).exists(),
         'initial_source': INITIAL_SOURCES[0][0],
         'employer': {
-            'name': employer["title"],
+            'name': employer["title"] if employer.get("title") else "",
             'address': "Адрес компании не предоставлен" if superjob_vacancy_data["address"] == None else superjob_vacancy_data["address"],
-            'url': employer["link"],
+            'url': employer["link"] if employer.get("link") else "",
         }
     }
 

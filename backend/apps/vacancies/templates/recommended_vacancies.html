@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div>
+        <div>
+            <h1>Поиск:</h1>
+            <form action="{% url 'vacancies:search_vacancies' %}" method="get">
+                {% csrf_token %}
+                <input type="text" name="query" id="query" maxlength="70" placeholder="Профессия, должность" required>
+                <input type="number" name="payment_from" id="payment_from" placeholder="Зарплата ">
+                <button type="submit">Поиск вакансий</button>
+            </form>
+        </div>
+        <div>
+            <a href="{% url 'vacancies:favourite_vacancies' %}">Избранные вакансии</a>
+        </div>
+    </div>
+    <div>
+        <h1>Вакансии, которые потенциально могут быть Вам интересны: </h1>
+        {% for recom_vac in recommended_vacancies %}
+            <div class="card" style="border: 2px solid #a7ff83;">
+                <div class="header">
+                    <h1 style="color: #086972;">{{ recom_vac.title }} {{ forloop.counter }} {{ recom_vac.external_id }}</h1>
+                    <div>
+                        {% if recom_vac.payment.payment_from == 0 and recom_vac.payment.payment_to == 0 %}
+                            <p>Уровень дохода не указан</p>
+                        {% elif recom_vac.payment.payment_to == 0 %}
+                            <p>от {{ recom_vac.payment.payment_from }}{{ recom_vac.payment.currency }} за месяц</p>
+                        {% elif recom_vac.payment.payment_from == 0 %}
+                            <p>до {{ recom_vac.payment.payment_to }}{{ recom_vac.payment.currency }} за месяц</p>
+                        {% elif recom_vac.payment.payment_from == recom_vac.payment.payment_to %}
+                            <p>{{ recom_vac.payment.payment_to }}{{ recom_vac.payment.currency }} за месяц</p>
+                        {% else %}
+                            <p>{{ recom_vac.payment.payment_from }}-{{ recom_vac.payment.payment_to }}{{ recom_vac.payment.currency }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if recom_vac.is_added_to_favorites %} 
+                            <form action="{% url 'vacancies:remove_vacancy_from_favourites' pk=recom_vac.external_id %}?q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                {% csrf_token %}
+                                <button type="submit">Удалить из избранного</button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'vacancies:add_vacancy_to_favourites' pk=recom_vac.external_id %}?parse_from={{ recom_vac.initial_source }}&q={{url_params.query}}&pf={{url_params.payment_from}}" method="post">
+                                {% csrf_token %}
+                                <button type="submit">Добавить в избранное</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <h4>Задачи/Проекты:</h4>
+                    {% if recom_vac.duties != "Отсутствует информация о задачах" %} 
+                        <ul>
+                            {% for d in recom_vac.duties %}
+                                <li>{{ d }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>{{ recom_vac.duties }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4>Требования:</h4>
+                    {% if recom_vac.requirements != "Отсутствует информация о требованиях" %}
+                        <ul>
+                            {% for req in recom_vac.requirements %}
+                                <li>{{ req }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>{{ recom_vac.requirements }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <h4>Условия работы:</h4>
+                    {% if recom_vac.working_conditions != "Отсутствует информация об условиях работы" %}
+                        <ul>
+                            {% for wk_cond in recom_vac.working_conditions %}
+                                <li>{{ wk_cond }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p>{{ recom_vac.working_conditions }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <p><b>Фирма/компания</b> - <a href="{{ recom_vac.employer.alternate_url }}">{{ recom_vac.employer.name }}</a></p>
+                    <p>{{ recom_vac.employer.address }}</p>
+                </div>
+                <p>
+                    Вакансия была опубликована {{ recom_vac.date_published |date:"F j, H:i " }}
+                </p>
+                <div>
+                    <p>
+                        Формат работы:
+                        {% for work_format in recom_vac.work_formats %}
+                            <span>{{ work_format }}</span>
+                        {% endfor %}
+                    </p>
+                    <h5>{{ recom_vac.education }}</h5>
+                </div>
+                <div>
+                    <p>Опыт работы: {{ recom_vac.experience_ru }}</p>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content %}
