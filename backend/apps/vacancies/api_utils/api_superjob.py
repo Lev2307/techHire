@@ -42,6 +42,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
             'payment_from': superjob_vacancy_data["payment_from"],
             'payment_to': superjob_vacancy_data["payment_to"],
             'currency': "RUR",
+            'by_agreement': True if superjob_vacancy_data["payment_from"] == 0 and superjob_vacancy_data["payment_to"] == 0 else False
         },
         'work_formats': work_format_values,
         'experience': experience[0],

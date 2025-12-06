@@ -160,17 +160,17 @@ TECHNOLOGIES_LIST = [
     'CSS, SASS, Tailwind, Bootstrap',
     'React, Vue, Angular',
     'Git',
-    'Docker, Kubernetes',
-    'SQL (MySQL, PostgreSQL)',
-    'NoSQL (MongoDB)',
-    'Elasticsearch',
-    'MLOps (ClearML, MLFlow)',
-    'AI-ассистенты (ChatGPT, Gemini, Grok и т.д)',
-    'ML-модули (NLTK, TensorFlow, Scikit-learn и др.)',
-    'Технологии машинного обучения (NLP, CV, LLM и др.)'
+    'Docker/Kubernetes',
+    'SQLite/MySQL/PostgreSQL (Реляционные БД)',
+    'MongoDB/Redis (Не реляционные БД)',
+    'Elasticsearch'
+    'ClearML/MLFlow и т.д (MLOps)',
+    'ChatGPT/Gemini/Grok и т.д (AI-ассистенты)',
+    'NLTK/TensorFlow/Scikit-learn и др. (ML-модули)',
+    'NLP/CV/LLM и др. (Технологии машинного обучения)'
     '1С',
     'GraphQL/REST',
-    'Брокеры сообщений (Redis/RabbitMQ/Kafka)',
+    'Redis/RabbitMQ/Kafka (Брокеры сообщений)',
     'Linux',
 ]
 

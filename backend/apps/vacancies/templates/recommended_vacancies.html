@@ -18,7 +18,7 @@
     <div>
         <h1>Вакансии, которые потенциально могут быть Вам интересны: </h1>
         {% for recom_vac in recommended_vacancies %}
-            <div class="card" style="border: 2px solid #a7ff83;">
+            <div class="card" style="border: 2px solid #a7ff83; margin-bottom: 2px;">
                 <div class="header">
                     <h1 style="color: #086972;">{{ recom_vac.title }} {{ forloop.counter }} {{ recom_vac.external_id }}</h1>
                     <div>

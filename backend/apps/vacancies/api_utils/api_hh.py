@@ -32,6 +32,7 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
             'payment_from': payment_from,
             'payment_to': payment_to,
             'currency': "RUR" if hh_vacancy_data["salary"] == None else hh_vacancy_data["salary"]["currency"],
+            'by_agreement': True if payment_from == 0 and payment_to == 0 else False
         },
         'work_formats': work_format_values,
         'experience': experience[0],
