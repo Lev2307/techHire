@@ -42,5 +42,5 @@ class OwnAuthenticationForm(AuthenticationForm):
     username = forms.EmailField()
     password = forms.CharField(
         label='Пароль',
-        widget=forms.PasswordInput()
+        widget=forms.PasswordInput({'autocomplete': "disabled"})
     )

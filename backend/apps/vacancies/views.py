@@ -8,7 +8,7 @@ from django.views import generic, View
 
 from .api_utils import get_vacancies_from_combined_api_sources, get_hh_vacancy_data_from_api, get_superjob_vacancy_data_from_api
 from .models import Vacancy, Firm, SearchHistory, INITIAL_SOURCES
-from .recommendations import get_recommended_vacancies_by_content
+from .recommendations.base import get_recommended_vacancies_by_content
 # Create your views here.
 class HomeView(generic.TemplateView):
     template_name = 'home.html'
