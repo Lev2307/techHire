@@ -1,4 +1,5 @@
 from datetime import datetime
+import concurrent
 
 import requests
 
@@ -6,7 +7,7 @@ from apps.accounts.models import Applicant
 from ..cache import get_user_city_info_from_cache_superjob, get_superjob_vacancy_from_cache
 from ..helpers import extract_duties_requirements_working_conditions_by_keywords
 from ..models import Vacancy, WorkFormat, EXPERIENCE_CHOICES, WORK_FORMAT_CHOICES, INITIAL_SOURCES
-from .constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS, NOT_FOUND_WORK_COND, SUPERJOB_API_HEADERS
+from .constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS, NOT_FOUND_WORK_COND, SUPERJOB_API_HEADERS, NUMBER_OF_VACANCIES_TO_BE_FOUND
 
 EDUCATIONS_SUPERJOB = [
     (0, 'not specified', 'Не имеет значения'),
@@ -57,10 +58,13 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
         }
     }
 
-def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from: int, count=30) -> list:
+def superjob_fetch_page(page, params, headers):
+    params["page"] = page+1
+    response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=headers, params=params).json()
+    return response
+
+def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from: int, pages_count: int, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
     """Возвращает вакансии с api Superjob, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
-    
-    url = f"https://api.superjob.ru/2.0/vacancies/"
     city = get_user_city_info_from_cache_superjob(user.get_city_display(), SUPERJOB_API_HEADERS)
     params = {
         'count': count,
@@ -75,9 +79,23 @@ def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from:
         del params["keywords"]
     if salary_from == 0:
         del params['payment_from']
-
-    response = requests.get(url, headers=SUPERJOB_API_HEADERS, params=params)
-    vacancies = response.json().get("objects")
+    
+    vacancies = []
+    if pages_count > 1:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(
+                superjob_fetch_page,
+                page,
+                params.copy(),
+                SUPERJOB_API_HEADERS
+            ) for page in range(pages_count)]
+            for future in concurrent.futures.as_completed(futures):
+                page_data = future.result()
+                vacancies.append(page_data.get("objects", []))
+        vacancies = [vacancy for sub_list in vacancies for vacancy in sub_list]
+    else:
+        response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=SUPERJOB_API_HEADERS, params=params)
+        vacancies = response.json().get("objects")
 
     for i in range(len(vacancies)):
         text = vacancies[i]['candidat']

@@ -51,8 +51,7 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
                 payment_similarity_ratio = 1 if abs(vacancy_payment_to - fav_payment_from) >= MAX_PAYMENT_DIFF else 0
             else:
                 payment_similarity_ratio = 1 if abs(vacancy_payment_to - fav_payment_to) >= MAX_PAYMENT_DIFF else 0
-
-    total_similarity = similarity_by_keywords + work_format_similarity_ratio * 0.25 + experience_similarity_ratio * 0.25 + payment_similarity_ratio * 0.1
+    total_similarity = similarity_by_keywords * 0.4 + work_format_similarity_ratio * 0.15 + experience_similarity_ratio * 0.3 + payment_similarity_ratio * 0.15
     return total_similarity
 
 def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy: dict, vacancy_text_only_keywords: str, favourites, threshold=0.4):
