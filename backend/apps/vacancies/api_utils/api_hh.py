@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import concurrent.futures
 
 import requests
 
@@ -6,7 +7,7 @@ from apps.accounts.models import Applicant
 from ..cache import get_user_city_info_from_cache_hh, get_hh_vacancy_from_cache
 from ..models import Vacancy, WorkFormat, EDUCATION_CHOICES, EXPERIENCE_CHOICES, WORK_FORMAT_CHOICES, INITIAL_SOURCES
 from ..helpers import extract_duties_requirements_working_conditions_by_keywords, get_payment_from_hh_vacancy
-from .constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS, NOT_FOUND_WORK_COND, HH_API_HEADERS
+from .constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS, NOT_FOUND_WORK_COND, HH_API_HEADERS, NUMBER_OF_VACANCIES_TO_BE_FOUND
 
 def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
     """Преобразовывает данные вакансии из api HH.ru в унифицированный формат."""
@@ -21,7 +22,7 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
         work_format_values = [WorkFormat.objects.get(name_eng=WORK_FORMAT_CHOICES[0][0])]
     experience = [i for i in EXPERIENCE_CHOICES if i[1] == hh_vacancy_data["experience"]["name"]][0]
     employer = hh_vacancy_data["employer"]
-    address = "Адрес компании не предоставлен" if not hh_vacancy_data["address"] else hh_vacancy_data["address"]["raw"]
+    address = "Адрес компании не предоставлен" if hh_vacancy_data["address"] == None else hh_vacancy_data["address"]["raw"]
     return {
         'external_id': hh_vacancy_data["id"],
         'title': hh_vacancy_data["name"],
@@ -47,7 +48,12 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
         }
     }
 
-def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, count=30) -> list:
+def hh_fetch_page(page, params, headers):
+    params["page"] = page+1
+    response = requests.get("https://api.hh.ru/vacancies", headers=headers, params=params).json()
+    return response
+
+def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, pages_count: int, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
     """Возвращает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
     applicant_city_humanable = user.get_city_display()
     city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
@@ -65,8 +71,29 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
         params["salary"] = salary_from
         params["only_with_salary"] = True
     
-    response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
-    vacancies = response.json().get("items")
+    # if pages gt 1
+    vacancies = []
+    if pages_count > 1:
+        # for _ in range(pages_count):
+        #     params["page"] = _+1
+        #     response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
+        #     vacancies.append(response.json().get("items"))
+        # vacancies = [vacancy for sub_list in vacancies for vacancy in sub_list]
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = [executor.submit(
+                hh_fetch_page,
+                page,
+                params.copy(),
+                HH_API_HEADERS
+            ) for page in range(pages_count)]
+            for future in concurrent.futures.as_completed(futures):
+                page_data = future.result()
+                vacancies.append(page_data.get("items", []))
+        vacancies = [vacancy for sub_list in vacancies for vacancy in sub_list]
+    else:
+        response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
+        vacancies = response.json().get("items")
+
     for i in range(len(vacancies)):
         vacancy_desc = get_hh_vacancy_from_cache(vacancies[i]["id"], HH_API_HEADERS, get_only_desc=True)
         parsed_options = extract_duties_requirements_working_conditions_by_keywords(vacancy_desc)
