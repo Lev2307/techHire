@@ -3,7 +3,6 @@ import concurrent
 
 import requests
 
-from apps.accounts.models import Applicant
 from ..cache import get_user_city_info_from_cache_superjob, get_superjob_vacancy_from_cache
 from ..helpers import extract_duties_requirements_working_conditions_by_keywords
 from ..models import Vacancy, WorkFormat, EXPERIENCE_CHOICES, WORK_FORMAT_CHOICES, INITIAL_SOURCES
@@ -63,23 +62,23 @@ def superjob_fetch_page(page, params, headers):
     response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=headers, params=params).json()
     return response
 
-def get_vacancies_from_superjob_source(query: str, user: Applicant, salary_from: int, pages_count: int, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
+def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str, salary_from: int, pages_count: int, are_for_recommendations: bool, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
     """Возвращает вакансии с api Superjob, отфильтрованные по пользовательским критериям: ключевые слова - keywords, город - t, сфера IT - catalogues, минимальная зарплата (опционально) - payment_from"""
-    city = get_user_city_info_from_cache_superjob(user.get_city_display(), SUPERJOB_API_HEADERS)
+    city = get_user_city_info_from_cache_superjob(applicant_city_ru_format, SUPERJOB_API_HEADERS)
     params = {
         'count': count,
         'order_field': 'relevance',
         'sort_new': 1,
         'keywords': query,
         'catalogues': '33',
-        'payment_from': salary_from,
         't': city,
     }
     if not query:
         del params["keywords"]
-    if salary_from == 0:
-        del params['payment_from']
-    
+
+    if salary_from != 0 or are_for_recommendations:
+        params['payment_from'] = salary_from
+
     vacancies = []
     if pages_count > 1:
         with concurrent.futures.ThreadPoolExecutor() as executor:

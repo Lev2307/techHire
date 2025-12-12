@@ -1,6 +1,7 @@
 import requests
 from django.core.cache import cache
 
+from config.settings import RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS
 from apps.accounts.models import Applicant
 
 def get_user_city_info_from_cache_superjob(city: str, headers: dict) -> dict:
@@ -54,16 +55,5 @@ def get_hh_vacancy_from_cache(external_id: str, headers: dict, get_only_desc=Fal
         vac_from_cache = cache.get(f"HH_VACANCY_ID_{external_id}")
         return vac_from_cache["description"] if get_only_desc else vac_from_cache
 
-def store_in_cache_vacancies_gathered_from_api_for_recommendations(user: Applicant, lifetime: int):
-    '''
-        Для блока рекомендаций сторит в кэш вакансии, полученные из апи на определённый промежуток времени (lifetime)
-    '''
-    cache.clear()
-    from .api_utils import get_vacancies_from_combined_api_sources
-    if not cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_USER_{user.email}"):
-        vacancies = get_vacancies_from_combined_api_sources(user, number_of_vacancies=100, pages_count=4)
-        cache.set(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_USER_{user.email}", vacancies, timeout=1)
-        return vacancies
-    else:
-        return cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_USER_{user.email}")
+
     

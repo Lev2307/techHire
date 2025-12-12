@@ -2,21 +2,24 @@
 from apps.accounts.models import Applicant
 from .api_hh import get_vacancies_from_headhunter_source
 from .api_superjob import get_vacancies_from_superjob_source
-from .constants import NUMBER_OF_VACANCIES_TO_BE_FOUND, NOT_FOUND_DUTIES, NOT_FOUND_REQS
+from .constants import NUMBER_OF_VACANCIES_TO_BE_FOUND
 
-def get_vacancies_from_combined_api_sources(user: Applicant, query="", salary_from=0, number_of_vacancies=NUMBER_OF_VACANCIES_TO_BE_FOUND, pages_count=1) -> list:
+def get_vacancies_from_combined_api_sources(applicant_city_ru_format: str, query="", salary_from=0, number_of_vacancies=NUMBER_OF_VACANCIES_TO_BE_FOUND, pages_count=1, are_for_recommendations=False) -> list:
     superjob_vacancies = get_vacancies_from_superjob_source(
         query,
-        user, 
+        applicant_city_ru_format, 
         salary_from, 
         pages_count,
+        are_for_recommendations,
+
     )
     headhunter_vacancies = get_vacancies_from_headhunter_source(
         query, 
-        user, 
+        applicant_city_ru_format, 
         salary_from, 
         pages_count,
-        number_of_vacancies
+        are_for_recommendations,
+        number_of_vacancies,
     )
 
     return headhunter_vacancies + superjob_vacancies

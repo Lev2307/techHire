@@ -1,6 +1,8 @@
 from pathlib import Path
 import os
 
+from celery.schedules import crontab
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -123,6 +125,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL")
 CELERY_TIMEZONE = os.environ.get('TZ')
+
+RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS = 4
+
+CELERY_BEAT_SCHEDULE = {
+    "update_vacancies_for_all_cities": {
+        "task": "apps.vacancies.tasks.update_vacancies_for_all_cities",
+        "schedule": crontab(hour=f"*/{RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS}") #
+    }
+}
 
 SPECIALIZATIONS_LIST = [
     'Backend-разработка',

@@ -3,7 +3,10 @@
 {% block content %}
     <nav>
         <h1>{{ user.email }}</h1>
-        <a href="{% url 'accounts:logout' %}">Выйти из ака</a>
+        <form action="{% url 'accounts:logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Выйти из ака</button>
+        </form>
     </nav>
     <div>
         <div>

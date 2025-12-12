@@ -6,6 +6,7 @@ from django.shortcuts import render, HttpResponseRedirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.views import generic, View
 
+from apps.accounts.models import Applicant
 from .api_utils import get_vacancies_from_combined_api_sources, get_hh_vacancy_data_from_api, get_superjob_vacancy_data_from_api
 from .models import Vacancy, Firm, SearchHistory, INITIAL_SOURCES
 from .recommendations import get_recommended_vacancies_by_content
@@ -31,7 +32,6 @@ class RecommendedVacanciesView(LoginRequiredMixin, View):
 
     def get(self, request, *args, **kwargs):
         recommended = get_recommended_vacancies_by_content(self.request.user)
-        print(len(recommended))
         return render(request, self.template_name, {'recommended_vacancies': recommended, 'user': self.request.user})
 
 class SearchVacanciesView(LoginRequiredMixin, View):
@@ -48,7 +48,8 @@ class SearchVacanciesView(LoginRequiredMixin, View):
         }
         if query:
             query = query.lower()
-            founded_vacancies_by_q = get_vacancies_from_combined_api_sources(self.request.user, query, payment_from)
+            city_ru_format = Applicant.objects.get(email=self.request.user.email).get_city_display()
+            founded_vacancies_by_q = get_vacancies_from_combined_api_sources(city_ru_format, query, payment_from)
             results_count = len(founded_vacancies_by_q)
             if not SearchHistory.objects.filter(user=self.request.user).annotate(is_match=RawSQL("search_query ILIKE '%%' || %s || '%%'", [query])).filter(is_match=True).exists() and results_count > 0:
                 new_q = SearchHistory.objects.create(user=self.request.user, search_query=query, results=results_count)

@@ -35,7 +35,7 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
     vacancy_payment_from, vacancy_payment_to = vacancy["payment"]["payment_from"], vacancy["payment"]["payment_to"]
     payment_similarity_ratio = 0
     if vacancy["payment"]["by_agreement"] and (fav_payment_to == 0 and fav_payment_from == 0):
-        payment_similarity_ratio = 1
+        payment_similarity_ratio = 0.5
     if not vacancy["payment"]["by_agreement"]:
         if vacancy_payment_to == 0:
             if fav_payment_to == 0:
@@ -79,4 +79,5 @@ def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy:
             similarity_by_keywords=similarities[0][idx],
         ) 
         sim += total_similarity
-    return sim / len(favourites)
+    total = sim / len(favourites)
+    return threshold if total > threshold else total

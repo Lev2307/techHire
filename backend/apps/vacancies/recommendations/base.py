@@ -1,9 +1,10 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
+from django.core.cache import cache
+
 from apps.accounts.models import Applicant
 from ..api_utils.constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS
-from ..cache import store_in_cache_vacancies_gathered_from_api_for_recommendations
 from ..models import Vacancy, SearchHistory
 from ..helpers import (
     extract_keywords_from_lists,
@@ -19,7 +20,7 @@ def fliter_vacancies_by_similarity(
     applicant_data: dict, 
     applicant_favourites_vacancies_data: dict, 
     applicant_search_history: dict,
-    threshold=0.8
+    threshold=0.75
     ) -> list:
     '''
         Фильтрует вакансии, используя косинусное сходство векторов вакансий, полученных из апи, и профиля пользователя с его избранными вакансиями и историей поиска. 
@@ -30,7 +31,6 @@ def fliter_vacancies_by_similarity(
     )
     applicant_text_skills += " ".join(applicant_search_history) # applicant specs, techs and search history
     applicant_text_skills_with_his_search_history = applicant_text_skills.lower()
-    print(applicant_text_skills_with_his_search_history)
 
     vacancies_texts_keywords = []
     for vac in vacancies:
@@ -63,12 +63,14 @@ def fliter_vacancies_by_similarity(
                 vacancy_text_only_keywords=vacancies_texts_keywords[idx], 
                 favourites=applicant_favourites_vacancies_data
             )
-            total_similarity += similarity_with_favourites_ratio * 0.9
-        # print(similarities[0][idx], similarity_with_applicant_profile_ratio, total_similarity)
-        if total_similarity >= threshold:
-            filtered_vacancies.append((vacancy, similarities[0][idx]))
+            total_similarity += similarity_with_favourites_ratio
+            if total_similarity >= threshold:
+                filtered_vacancies.append((vacancy, similarities[0][idx]))
+        else:
+            if total_similarity >= threshold-0.4:
+                filtered_vacancies.append((vacancy, similarities[0][idx]))
     filtered_vacancies.sort(key=lambda x: x[1], reverse=True)
-    return [i[0] for i in filtered_vacancies]
+    return [i[0] for i in filtered_vacancies][:12] # get top 12 recommended
 
 
 def get_recommended_vacancies_by_content(user: Applicant) -> list:
@@ -76,7 +78,8 @@ def get_recommended_vacancies_by_content(user: Applicant) -> list:
     applicant_data = get_applicant_criterias_for_filtering_vacancies(user)
     applicant_fav_vacancies_data = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=user))
     applicant_search_histories = get_applicant_search_history_info_for_filtering_vacancies(SearchHistory.objects.filter(user=user))
-    all_latest_it_vacancies = store_in_cache_vacancies_gathered_from_api_for_recommendations(user, lifetime=4*3600)
+
+    all_latest_it_vacancies = cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_USER_{user.get_city_display()}") # get vacancies for user city from cache
     for vac in all_latest_it_vacancies:
         if vac["duties"] == NOT_FOUND_DUTIES and vac["requirements"] == NOT_FOUND_REQS:
             all_latest_it_vacancies.remove(vac)

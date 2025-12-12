@@ -3,7 +3,6 @@ import concurrent.futures
 
 import requests
 
-from apps.accounts.models import Applicant
 from ..cache import get_user_city_info_from_cache_hh, get_hh_vacancy_from_cache
 from ..models import Vacancy, WorkFormat, EDUCATION_CHOICES, EXPERIENCE_CHOICES, WORK_FORMAT_CHOICES, INITIAL_SOURCES
 from ..helpers import extract_duties_requirements_working_conditions_by_keywords, get_payment_from_hh_vacancy
@@ -53,10 +52,9 @@ def hh_fetch_page(page, params, headers):
     response = requests.get("https://api.hh.ru/vacancies", headers=headers, params=params).json()
     return response
 
-def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_from: int, pages_count: int, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
+def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: str, salary_from: int, pages_count: int, are_for_recommendations: bool, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
     """Возвращает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
-    applicant_city_humanable = user.get_city_display()
-    city = get_user_city_info_from_cache_hh(applicant_city_humanable, HH_API_HEADERS)
+    city = get_user_city_info_from_cache_hh(applicant_city_ru_format, HH_API_HEADERS)
     params = {
         'per_page': count,
         'text': query,
@@ -67,18 +65,14 @@ def get_vacancies_from_headhunter_source(query: str, user: Applicant, salary_fro
     if not query:
         del params['text']
 
-    if salary_from:
+    if salary_from != 0:
         params["salary"] = salary_from
         params["only_with_salary"] = True
+
     
     # if pages gt 1
     vacancies = []
     if pages_count > 1:
-        # for _ in range(pages_count):
-        #     params["page"] = _+1
-        #     response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
-        #     vacancies.append(response.json().get("items"))
-        # vacancies = [vacancy for sub_list in vacancies for vacancy in sub_list]
         with concurrent.futures.ThreadPoolExecutor() as executor:
             futures = [executor.submit(
                 hh_fetch_page,
