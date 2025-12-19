@@ -23,8 +23,5 @@ def calculate_total_similarity_between_appilicant_profile_and_vacancy(applicant_
             if idx < vacancy_experience_index_count_till:
                 experience_similarity_ratio += 0.25
 
-    total_similarity = tech_similarity * 0.8 + work_format_similarity_ratio * 0.15 + experience_similarity_ratio * 0.3
+    total_similarity = tech_similarity + work_format_similarity_ratio * 0.15 + experience_similarity_ratio * 0.15
     return total_similarity
-
-
-

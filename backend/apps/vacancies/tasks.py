@@ -18,13 +18,10 @@ def make_vacancy_archived_task(vacancy_id):
 @shared_task
 def update_vacancies_for_all_cities():
     from .api_utils import get_vacancies_from_combined_api_sources
-    cities = list(Applicant.objects.values_list('city', flat=True).distinct())
-    cities_ru = []
-    for i in range(len(cities)):
-        if CITY_CHOICES[i][0] == cities[i]:
-            cities_ru.append(CITY_CHOICES[i][1])
+    cities_ru = [i[1] for i in CITY_CHOICES]
     for city in cities_ru:
-        vacancies = get_vacancies_from_combined_api_sources(city, salary_from=0, number_of_vacancies=100, pages_count=6, are_for_recommendations=True)
-        cache.set(f'STORED_VACANCIES_FOR_RECOMMENDATIONS_USER_{city}', vacancies, timeout=RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS*3600)
+        print(city)
+        vacancies = get_vacancies_from_combined_api_sources(city, salary_from=0, number_of_vacancies=100, are_for_recommendations=True)
+        cache.set(f'STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{city}', vacancies, timeout=RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS*3600)
         print('her automatically')
         print(f"vacancies for city {city}")

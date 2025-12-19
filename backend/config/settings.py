@@ -126,12 +126,12 @@ CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL")
 CELERY_TIMEZONE = os.environ.get('TZ')
 
-RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS = 4
+RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS = 12
 
 CELERY_BEAT_SCHEDULE = {
     "update_vacancies_for_all_cities": {
         "task": "apps.vacancies.tasks.update_vacancies_for_all_cities",
-        "schedule": crontab(hour=f"*/{RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS}") #
+        "schedule": crontab(minute='0', hour=f'*/{RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS}')
     }
 }
 
@@ -174,7 +174,7 @@ TECHNOLOGIES_LIST = [
     'Docker/Kubernetes',
     'SQLite/MySQL/PostgreSQL (Реляционные БД)',
     'MongoDB/Redis (Не реляционные БД)',
-    'Elasticsearch'
+    'Elasticsearch',
     'ClearML/MLFlow и т.д (MLOps)',
     'ChatGPT/Gemini/Grok и т.д (AI-ассистенты)',
     'NLTK/TensorFlow/Scikit-learn и др. (ML-модули)',
@@ -190,3 +190,16 @@ SUPERJOB_API_KEY = os.environ.get('SUPERJOB_API_SECRET_KEY')
 HH_API_CLIENT_ID = os.environ.get('HH_API_CLIENT_ID')
 HH_API_CLIENT_SECRET = os.environ.get('HH_API_CLIENT_SECRET')
 HH_API_ACCESS_TOKEN = os.environ.get("HH_API_ACCESS_TOKEN")
+
+# 1. пофиксить или же выяснить работу celery_beat_schedule после обновления кода ✅
+# 2. если всё устроит в рекомендациях (подчернуто) ✅
+# 2.1 тесты к рекомендациям (helpers -> taska -> recommendations)
+# 3. Делаю логин через тг (all-auth) + после логина добавляю привязку специальностей и инструментов с почтой. 
+# 4. Добавление собственных навыков и инструментов к себе на аккаунт + /accounts/profile (страница настроек пользорвателя + форма привязки почты)
+# 5. Привязка тг если акк зареган через /signup (под вопросом)
+# 6. 3+4+5 в тесты
+# 7. Создание api
+# 8. Тесты api
+# 9. Уведы в тг при появлении новой вакансии в рекомендациях
+# 10. Создание укороченного функционала в тг (профиль, избранные вакансии + частичный список рекомнедованных)
+# 11. Конец бэкэнда!!!!!

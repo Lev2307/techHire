@@ -20,7 +20,7 @@ def fliter_vacancies_by_similarity(
     applicant_data: dict, 
     applicant_favourites_vacancies_data: dict, 
     applicant_search_history: dict,
-    threshold=0.75
+    threshold=0.5
     ) -> list:
     '''
         Фильтрует вакансии, используя косинусное сходство векторов вакансий, полученных из апи, и профиля пользователя с его избранными вакансиями и историей поиска. 
@@ -65,10 +65,10 @@ def fliter_vacancies_by_similarity(
             )
             total_similarity += similarity_with_favourites_ratio
             if total_similarity >= threshold:
-                filtered_vacancies.append((vacancy, similarities[0][idx]))
+                filtered_vacancies.append((vacancy, total_similarity))
         else:
-            if total_similarity >= threshold-0.4:
-                filtered_vacancies.append((vacancy, similarities[0][idx]))
+            if total_similarity >= threshold-0.2:
+                filtered_vacancies.append((vacancy, total_similarity))
     filtered_vacancies.sort(key=lambda x: x[1], reverse=True)
     return [i[0] for i in filtered_vacancies][:12] # get top 12 recommended
 
@@ -78,10 +78,11 @@ def get_recommended_vacancies_by_content(user: Applicant) -> list:
     applicant_data = get_applicant_criterias_for_filtering_vacancies(user)
     applicant_fav_vacancies_data = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=user))
     applicant_search_histories = get_applicant_search_history_info_for_filtering_vacancies(SearchHistory.objects.filter(user=user))
-
-    all_latest_it_vacancies = cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_USER_{user.get_city_display()}") # get vacancies for user city from cache
+    all_latest_it_vacancies = cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}") # get vacancies for user city from cache
     for vac in all_latest_it_vacancies:
         if vac["duties"] == NOT_FOUND_DUTIES and vac["requirements"] == NOT_FOUND_REQS:
+            all_latest_it_vacancies.remove(vac)
+        if vac["is_added_to_favorites"] == True:
             all_latest_it_vacancies.remove(vac)
     filtered_vacancies = fliter_vacancies_by_similarity(
         all_latest_it_vacancies, 

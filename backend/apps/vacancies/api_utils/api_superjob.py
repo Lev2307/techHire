@@ -95,7 +95,6 @@ def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str
     else:
         response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=SUPERJOB_API_HEADERS, params=params)
         vacancies = response.json().get("objects")
-
     for i in range(len(vacancies)):
         text = vacancies[i]['candidat']
         parsed_options = extract_duties_requirements_working_conditions_by_keywords(text)

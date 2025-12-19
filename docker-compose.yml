@@ -33,7 +33,7 @@ services:
     build: 
       context: ./backend
       dockerfile: DockerFile
-    command: celery -A config worker -l info
+    command: celery -A config worker -l info --concurrency=1
     volumes:
       - ./backend/:/back
     env_file:
@@ -45,7 +45,7 @@ services:
     build: 
       context: ./backend
       dockerfile: DockerFile
-    command: celery -A config beat -l info
+    command: celery -A config beat -l info 
     volumes: 
       - ./backend/:/back
     env_file:

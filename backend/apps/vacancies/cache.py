@@ -54,6 +54,3 @@ def get_hh_vacancy_from_cache(external_id: str, headers: dict, get_only_desc=Fal
     else:
         vac_from_cache = cache.get(f"HH_VACANCY_ID_{external_id}")
         return vac_from_cache["description"] if get_only_desc else vac_from_cache
-
-
-    

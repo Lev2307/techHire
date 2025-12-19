@@ -87,7 +87,6 @@ def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: s
     else:
         response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
         vacancies = response.json().get("items")
-
     for i in range(len(vacancies)):
         vacancy_desc = get_hh_vacancy_from_cache(vacancies[i]["id"], HH_API_HEADERS, get_only_desc=True)
         parsed_options = extract_duties_requirements_working_conditions_by_keywords(vacancy_desc)

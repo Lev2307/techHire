@@ -3,7 +3,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from apps.accounts.models import EXPERIENCE_CHOICES
 from ..helpers import extract_keywords_from_lists
-from ..models import WorkFormat
+from ..models import WorkFormat, Vacancy
 
 MAX_PAYMENT_DIFF = 50_000
 
@@ -35,7 +35,7 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
     vacancy_payment_from, vacancy_payment_to = vacancy["payment"]["payment_from"], vacancy["payment"]["payment_to"]
     payment_similarity_ratio = 0
     if vacancy["payment"]["by_agreement"] and (fav_payment_to == 0 and fav_payment_from == 0):
-        payment_similarity_ratio = 0.5
+        payment_similarity_ratio = 0.75
     if not vacancy["payment"]["by_agreement"]:
         if vacancy_payment_to == 0:
             if fav_payment_to == 0:
@@ -51,10 +51,10 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
                 payment_similarity_ratio = 1 if abs(vacancy_payment_to - fav_payment_from) >= MAX_PAYMENT_DIFF else 0
             else:
                 payment_similarity_ratio = 1 if abs(vacancy_payment_to - fav_payment_to) >= MAX_PAYMENT_DIFF else 0
-    total_similarity = similarity_by_keywords * 0.4 + work_format_similarity_ratio * 0.15 + experience_similarity_ratio * 0.3 + payment_similarity_ratio * 0.15
+    total_similarity = similarity_by_keywords * 0.6 + work_format_similarity_ratio * 0.1 + experience_similarity_ratio * 0.2 + payment_similarity_ratio * 0.1
     return total_similarity
 
-def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy: dict, vacancy_text_only_keywords: str, favourites, threshold=0.4):
+def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy: dict, vacancy_text_only_keywords: str, favourites: dict, threshold=0.5):
     '''
         Рассчёт конечного коэффициента совпадения между вакансией и вакансиями, которые пользователь добавил в избранное
     '''
@@ -71,13 +71,21 @@ def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy:
     favourites_vector = tfidf_matrix[1:]
     similarities = cosine_similarity(vac_vector, favourites_vector)
 
-    sim = 0
+    if len(favourites.keys()) == 1:
+        each_vacancy_similarity_with_fav_ratio = 0.9
+    elif 2 <= len(favourites.keys()) <= 3:
+        each_vacancy_similarity_with_fav_ratio = 0.35
+    elif 3 < len(favourites.keys()) < 6:
+        each_vacancy_similarity_with_fav_ratio = 0.1
+    else:
+        each_vacancy_similarity_with_fav_ratio = 0.03
+    total = 0
     for idx, fav_uuid in enumerate(favourites):
         total_similarity = calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(
             vacancy=vacancy,
             fav=favourites.get(fav_uuid),
             similarity_by_keywords=similarities[0][idx],
         ) 
-        sim += total_similarity
-    total = sim / len(favourites)
+        total += total_similarity * each_vacancy_similarity_with_fav_ratio
     return threshold if total > threshold else total
+
