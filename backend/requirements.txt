@@ -2,6 +2,7 @@ bs4
 celery===5.5.3
 scikit-learn
 Django===5.2.7
+django-allauth
 django-redis
 djangorestframework===3.16.1
 emoji

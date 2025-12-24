@@ -26,6 +26,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount.providers.telegram',
+
     'apps.accounts',
     'apps.vacancies',
 ]
@@ -38,6 +42,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'allauth.account.middleware.AccountMiddleware'
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -122,6 +128,19 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+TELEGRAM_BOT_ID = os.environ.get('TELEGRAM_BOT_ID')
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+
+SOCIALACCOUNT_PROVIDERS = {
+    'telegram': {
+        'APP': {
+            'client_id': TELEGRAM_BOT_ID,
+            'secret': TELEGRAM_BOT_TOKEN,
+        }
+    }
+}
+DOMAIN_FOR_TUNELLING = os.environ.get('TUNNEL_DOMAIN')
+
 CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL")
 CELERY_TIMEZONE = os.environ.get('TZ')
@@ -190,6 +209,7 @@ SUPERJOB_API_KEY = os.environ.get('SUPERJOB_API_SECRET_KEY')
 HH_API_CLIENT_ID = os.environ.get('HH_API_CLIENT_ID')
 HH_API_CLIENT_SECRET = os.environ.get('HH_API_CLIENT_SECRET')
 HH_API_ACCESS_TOKEN = os.environ.get("HH_API_ACCESS_TOKEN")
+
 
 # 1. пофиксить или же выяснить работу celery_beat_schedule после обновления кода ✅
 # 2. если всё устроит в рекомендациях (подчернуто) ✅
