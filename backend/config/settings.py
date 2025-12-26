@@ -26,10 +26,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    'allauth',
-    'allauth.account',
-    'allauth.socialaccount.providers.telegram',
-
     'apps.accounts',
     'apps.vacancies',
 ]
@@ -42,9 +38,9 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-
-    'allauth.account.middleware.AccountMiddleware'
 ]
+
+CSRF_TRUSTED_ORIGINS = [os.environ.get('TUNNEL_DOMAIN')]
 
 ROOT_URLCONF = 'config.urls'
 
@@ -107,8 +103,6 @@ AUTH_PASSWORD_VALIDATORS = [
 
 AUTH_USER_MODEL = 'accounts.Applicant'
 
-LOGIN_REDIRECT_URL = '/'
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -130,16 +124,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TELEGRAM_BOT_ID = os.environ.get('TELEGRAM_BOT_ID')
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
-
-SOCIALACCOUNT_PROVIDERS = {
-    'telegram': {
-        'APP': {
-            'client_id': TELEGRAM_BOT_ID,
-            'secret': TELEGRAM_BOT_TOKEN,
-        }
-    }
-}
-DOMAIN_FOR_TUNELLING = os.environ.get('TUNNEL_DOMAIN')
 
 CELERY_BROKER_URL = os.environ.get('REDIS_URL')
 CELERY_RESULT_BACKEND = os.environ.get("REDIS_URL")
