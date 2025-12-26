@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<script>
+    (function () {
+        if (window.location.hash && window.location.hash.includes('tgAuthResult')) {
+            const hashParams = window.location.hash.substring(1); 
+            const searchParams = hashParams.replace('tgAuthResult=', '');
+            const decodedData = atob(searchParams);
+            const dict = JSON.parse(decodedData);
+            var s = '';
+            Object.keys(dict).forEach(function(key) {
+                s += `${key}=${dict[key]}&`;
+            });
+            window.location.replace(window.location.pathname + '?' + s);
+        } else {
+            window.location.replace('/');
+        }
+    })();
+</script>
+{% endblock content %}

@@ -1,17 +1,14 @@
-{% extends 'base.html' %}
-
-{% block title %} Войти в аккаунт {% endblock title %}
-
-{% block content %}
-    <form action="" method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Войти в аккаунт</button>
-    </form>
-    <script async src="https://telegram.org/js/telegram-widget.js?22"
-    data-telegram-login="TechHireBot"
-    data-size="large"
-    data-auth-url="{{ redirect_url }}"
-    data-request-access="write"
-    ></script>
-{% endblock content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <a href="https://oauth.telegram.org/auth?bot_id={{ bot_token_digits }}&origin=https://tunnel.tech-hire.ru&return_to=https://tunnel.tech-hire.ru/accounts/telegram-auth&embed=1" 
+    style="background: #54a9eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-family: sans-serif; display: inline-block;">
+    Войти через Telegram
+    </a>
+</body>
+</html>
