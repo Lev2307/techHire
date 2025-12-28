@@ -69,6 +69,8 @@ def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: s
         params["salary"] = salary_from
         params["only_with_salary"] = True
 
+    if are_for_recommendations:
+        params['order_by'] = 'publication_time'
     
     # if pages gt 1
     vacancies = []
@@ -94,6 +96,7 @@ def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: s
         vacancy_overrided = parse_vacancy_hh_data(vacancies[i], parsed_options)
         vacancies[i].clear()
         vacancies[i] = vacancy_overrided
+    print(len(vacancies))
     return vacancies
 
 

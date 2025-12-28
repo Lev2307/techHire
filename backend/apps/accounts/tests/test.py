@@ -5,36 +5,22 @@ from django.urls import reverse
 
 from config.settings import SPECIALIZATIONS_LIST, TECHNOLOGIES_LIST
 from ..models import Applicant, Specialization, Technology
-from .factories import generate_applicant_data
+from .factories import generate_specs, generate_techs, generate_applicant_data
 
-def generate_specs(specs):
-    genenerated_specs = []
-    for s in specs:
-        s = Specialization.objects.create(name=s)
-        genenerated_specs.append(s)
-    return [t.id for t in genenerated_specs]
 
-def generate_techs(techs):
-    genenerated_techs = []
-    for s in techs:
-        s = Technology.objects.create(name=s)
-        genenerated_techs.append(s)
-    return [t.id for t in genenerated_techs]
 
 class TestAccounts(TestCase):
     def setUp(self):
-        self.first_name = 'Vasya'
-        self.last_name = 'Pupkin'
+        self.username = 'admin'
+        self.first_name = 'Вася'
         self.email = 'a@b.com'
         self.city = 'Moscow'
-        self.gender = 'male'
-        self.age = 19
         self.exp = 'No exp'
         self.specs = generate_specs([SPECIALIZATIONS_LIST[0], SPECIALIZATIONS_LIST[1]])
         self.techs = generate_techs([TECHNOLOGIES_LIST[0], TECHNOLOGIES_LIST[1]])
         self.password1 = 'pogchamp123'
         self.password2 = 'pogchamp123'
-        self.data = generate_applicant_data(self.first_name, self.last_name, self.email, self.city, self.gender, self.age, self.exp, self.specs, self.techs, self.password1, self.password2)
+        self.data = generate_applicant_data(self.username, self.first_name, self.email, self.city, self.exp, self.specs, self.techs, self.password1, self.password2)
 
         self.email_for_login, self.password_for_login = 'a@a.com', 'testpass123'
         self.applicant_for_login = Applicant.objects.create_user(email=self.email_for_login, password=self.password_for_login)

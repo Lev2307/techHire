@@ -7,7 +7,7 @@ from apps.accounts.models import Applicant
 from ..api_utils.constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS
 from ..models import Vacancy, SearchHistory
 from ..helpers import (
-    extract_keywords_from_lists,
+    extract_keywords_from_text,
     get_applicant_criterias_for_filtering_vacancies, 
     get_applicant_favourite_vacancies_info_for_filtering_vacancies,
     get_applicant_search_history_info_for_filtering_vacancies
@@ -36,7 +36,7 @@ def fliter_vacancies_by_similarity(
     for vac in vacancies:
         duties = vac.get('duties') if vac.get('duties') != NOT_FOUND_DUTIES else []
         reqs = vac.get('requirements') if vac.get('requirements') != NOT_FOUND_REQS else []
-        keywords = extract_keywords_from_lists(" ".join(duties + reqs))
+        keywords = extract_keywords_from_text(" ".join(duties + reqs))
         vacancies_texts_keywords.append(keywords)
 
     vectorizer = TfidfVectorizer()
@@ -78,16 +78,18 @@ def get_recommended_vacancies_by_content(user: Applicant) -> list:
     applicant_data = get_applicant_criterias_for_filtering_vacancies(user)
     applicant_fav_vacancies_data = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=user))
     applicant_search_histories = get_applicant_search_history_info_for_filtering_vacancies(SearchHistory.objects.filter(user=user))
-    all_latest_it_vacancies = cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}") # get vacancies for user city from cache
+    all_latest_it_vacancies = [] if not cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}") else cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}") # get vacancies for user city from cache
     for vac in all_latest_it_vacancies:
         if vac["duties"] == NOT_FOUND_DUTIES and vac["requirements"] == NOT_FOUND_REQS:
             all_latest_it_vacancies.remove(vac)
         if vac["is_added_to_favorites"] == True:
             all_latest_it_vacancies.remove(vac)
-    filtered_vacancies = fliter_vacancies_by_similarity(
-        all_latest_it_vacancies, 
-        applicant_data, 
-        applicant_fav_vacancies_data,
-        applicant_search_histories
-    )
-    return filtered_vacancies
+    if all_latest_it_vacancies:
+        filtered_vacancies = fliter_vacancies_by_similarity(
+            all_latest_it_vacancies, 
+            applicant_data, 
+            applicant_fav_vacancies_data,
+            applicant_search_histories
+        )
+        return filtered_vacancies
+    return []

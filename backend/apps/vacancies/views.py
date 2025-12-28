@@ -48,7 +48,7 @@ class SearchVacanciesView(LoginRequiredMixin, View):
         }
         if query:
             query = query.lower()
-            city_ru_format = Applicant.objects.get(email=self.request.user.email).get_city_display()
+            city_ru_format = Applicant.objects.get(username=self.request.user.username).get_city_display()
             founded_vacancies_by_q = get_vacancies_from_combined_api_sources(city_ru_format, query, payment_from)
             results_count = len(founded_vacancies_by_q)
             if not SearchHistory.objects.filter(user=self.request.user).annotate(is_match=RawSQL("search_query ILIKE '%%' || %s || '%%'", [query])).filter(is_match=True).exists() and results_count > 0:

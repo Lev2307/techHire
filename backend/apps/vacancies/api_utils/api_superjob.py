@@ -30,6 +30,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
     for _ in range(len(WORK_FORMAT_CHOICES)):
         if _ == superjob_vacancy_data["place_of_work"]["id"]:
             work_format_values.append(WorkFormat.objects.get(name_eng=WORK_FORMAT_CHOICES[_][0]))
+
     employer = superjob_vacancy_data["client"]
     experience =  [_ for _ in EXPERIENCE_CHOICES_SUPERJOB if superjob_vacancy_data["experience"]["title"] == _[1]][0]
     return {
@@ -101,6 +102,7 @@ def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str
         vacancy_overrided = parse_vacancy_superjob_data(vacancies[i], parsed_options)
         vacancies[i].clear()
         vacancies[i] = vacancy_overrided
+    print(len(vacancies))
     return vacancies
 
 def get_superjob_vacancy_data_from_api(external_id: str) -> dict:

@@ -3,9 +3,10 @@ import hmac
 import time
 
 from django.contrib.auth import login
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.views import generic
 
 from config import settings
@@ -17,6 +18,19 @@ class LoginView(generic.View):
 
     def get(self, request):
         return render(request, self.template_name, {'bot_token_digits': settings.TELEGRAM_BOT_ID})
+    
+class ProfileView(LoginRequiredMixin, generic.DetailView):
+    model = Applicant
+    template_name = 'profile.html'
+    login_url = reverse_lazy('accounts:login')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['user'] = self.request.user
+        return context
+
+    def get_object(self, queryset=None):
+        return self.model.objects.get(username=self.request.user.username)
     
 def sign_up_view(request):
     if request.method == "POST":
@@ -38,7 +52,7 @@ def sign_up_view(request):
             form.save_m2m()
 
             login(request, applicant)
-            return HttpResponseRedirect(reverse('homepage'))
+            return HttpResponseRedirect(reverse('accounts:profile'))
         
 def telegram_auth(request):
     if request.method == "GET":
@@ -49,7 +63,7 @@ def telegram_auth(request):
 
         # checking url validity
         if time.time() - int(data.get('auth_date')) > 300: # 5 minutes max
-            return HttpResponse('Ссылка устарела иди обратно')
+            return HttpResponse('Ссылка устарела!!!')
 
         # getting hash and compare to own generated hash which depends on tg data and bot token
         hash = data.get('hash')
@@ -67,7 +81,7 @@ def telegram_auth(request):
             if Applicant.objects.filter(username=user_data["username"]).exists():
                 applicant = Applicant.objects.get(username=user_data["username"])
                 login(request, applicant)
-                return HttpResponseRedirect(reverse('homepage'))
+                return HttpResponseRedirect(reverse('accounts:profile'))
             else:
                 form = ApplicantSignUpForm()
                 return render(request, 'signup.html', {'user_data': user_data, 'form': form})

@@ -18,19 +18,19 @@ class VacanciesViewsTests(TestCase):
         super().setUpTestData()
     
     def setUp(self):
-        self.applicant_email = 'applicant@example.com'
+        self.applicant_username = 'applicant'
         self.applicant_password = 'applicant123'
 
-        self.applicant = Applicant.objects.create_user(email=self.applicant_email, password=self.applicant_password)
+        self.applicant = Applicant.objects.create_user(username=self.applicant_username, password=self.applicant_password)
         self.applicant.save()
 
-        self.other_user_email = 'other@example.com'
+        self.other_user_username = 'other'
         self.other_user_password = 'other123'
-        self.other_user = Applicant.objects.create(email=self.other_user_email, password=self.other_user_password)
+        self.other_user = Applicant.objects.create(username=self.other_user_username, password=self.other_user_password)
         self.other_user.save()
 
         self.query_for_latest_hh_request, self.payment_from_for_latest_hh_request = 'backend Python', 0
-        self.latest_vacancies_from_hh_source = get_vacancies_from_headhunter_source(self.query_for_latest_hh_request, self.applicant, self.payment_from_for_latest_hh_request, 2)
+        self.latest_vacancies_from_hh_source = get_vacancies_from_headhunter_source(self.query_for_latest_hh_request, self.applicant, self.payment_from_for_latest_hh_request, 2, are_for_recommendations=False)
         self.latest_vac_first = self.latest_vacancies_from_hh_source[0]
         self.latest_vac_second = self.latest_vacancies_from_hh_source[1]
 
@@ -44,9 +44,9 @@ class VacanciesViewsTests(TestCase):
             user=self.applicant,
             external_id=51320730,
             title='Разработчик DWH (Oracle)',
-            duties=['Разработка и проектирование архитектуры DWH', 'Оптимизация процессов загрузки и трансформации', 'Участие в задачах анализа систем источников'], 
-            requirements=['Опыт в качестве разработчика баз данных от 3 лет', 'Умение читать план и оптимизировать SQL запросы', 'Опыт работы с Oracle Database', 'Знание Python', 'Базовое умение работать с git.'], 
-            working_conditions=['Стабильность и гарантии  оформление в соответствии с ТК РФ', 'Полис ДМС через 3 месяца работы в компании', 'Скидки на покупки в сети магазинов «Подружка», скидки у компаний партнеров'],
+            duties='Разработка и проектирование архитектуры DWH;Оптимизация процессов загрузки и трансформации;Участие в задачах анализа систем источников', 
+            requirements='Опыт в качестве разработчика баз данных от 3 лет;Умение читать план и оптимизировать SQL запросы;Опыт работы с Oracle Database;Знание Python;Базовое умение работать с git.', 
+            working_conditions='Стабильность и гарантии  оформление в соответствии с ТК РФ;Полис ДМС через 3 месяца работы в компании;Скидки на покупки в сети магазинов «Подружка», скидки у компаний партнеров',
             payment_from=0, 
             payment_to=0, 
             currency='RUR',
@@ -67,22 +67,11 @@ class VacanciesViewsTests(TestCase):
     
     def test_home_view_authenticated_response(self):
         '''Проверка авторизированного GET запроса к начальной странице'''
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.get(reverse('homepage'))
         self.assertEqual(response.status_code, 302) # redirect to recommendations
         self.assertEqual(response.url, reverse('vacancies:recom_vacancies'))
     
-    def test_recommendations_view_is_login_required(self):
-        '''Проверка:только авторизованные пользователи могут зайти на страницу рекомендованных вакансий'''
-        #anonymous
-        response = self.client.get(reverse("vacancies:recom_vacancies"))
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(urlparse(response.url).path, reverse('accounts:login'))
-
-        #authenticated
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
-        response_authenticated = self.client.get(reverse('vacancies:recom_vacancies'))
-        self.assertEqual(response_authenticated.status_code, 200)
     
     def test_search_vacancies_view_is_login_required(self):
         '''Проверка: только авторизованные пользователи могут зайти на страницу поиска'''
@@ -92,13 +81,13 @@ class VacanciesViewsTests(TestCase):
         self.assertEqual(urlparse(response.url).path, reverse('accounts:login'))
 
         #authenticated
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response_authenticated = self.client.get(reverse('vacancies:search_vacancies'), query_params={'query': 'Python'})
         self.assertEqual(response_authenticated.status_code, 200)
     
     def test_search_vacancies_view_query_param_query(self):
         '''Проверка наличия параметра query в url поиска вакансий'''
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
 
         response_with_query_param = self.client.get(reverse('vacancies:search_vacancies'), query_params={'query': 'Python'})
         self.assertEqual(response_with_query_param.status_code, 200)
@@ -116,7 +105,7 @@ class VacanciesViewsTests(TestCase):
         prev_search_query = SearchHistory.objects.create(user=self.applicant, search_query='DevOps-engineer')
         query_new = 'Python'
         query_not_found = 'BLABLABLA'
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
 
         # old vacancy name/query
         search_response_with_old_query = self.client.get(reverse("vacancies:search_vacancies"), query_params={'query': 'DevOps'})
@@ -138,7 +127,7 @@ class VacanciesViewsTests(TestCase):
         self.assertEqual(urlparse(response.url).path, reverse('accounts:login'))
 
         #authenticated
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response_authenticated = self.client.get(reverse('vacancies:favourite_vacancies'))
         self.assertEqual(response_authenticated.status_code, 200)
     
@@ -147,14 +136,14 @@ class VacanciesViewsTests(TestCase):
         vac = Vacancy.objects.all().first()
 
         #vacancy owner
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.get(reverse("vacancies:favourite_vacancies"))
         self.assertIn(vac.title, response.content.decode('utf-8'))
 
         self.client.logout()
 
         #other user
-        self.client.login(email=self.other_user_email, password=self.other_user_password)
+        self.client.login(username=self.other_user_username, password=self.other_user_password)
         response = self.client.get(reverse("vacancies:favourite_vacancies"))
         self.assertNotIn(vac.title, response.content.decode('utf-8'))
     
@@ -163,7 +152,7 @@ class VacanciesViewsTests(TestCase):
         vac = Vacancy.objects.all().first()
 
         # vacancy is not archived
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.get(reverse("vacancies:favourite_vacancies"))
         self.assertEqual(list(response.context["favourites"]), [vac])
 
@@ -189,7 +178,7 @@ class VacanciesViewsTests(TestCase):
         self.assertEqual(urlparse(response_anon.url).path, reverse('accounts:login'))
 
         #authenticated
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response_auth = self.client.post(
             reverse("vacancies:add_vacancy_to_favourites", args=(self.latest_vac_first['external_id'], )), 
             query_params={
@@ -203,7 +192,7 @@ class VacanciesViewsTests(TestCase):
     
     def test_add_vacancy_to_favourites_redirects_correctly_to_search_page(self):
         '''Проверка: POST запрос добавления вакансии в избранное корректно редиректит на страницу поиска'''
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.post(
             reverse("vacancies:add_vacancy_to_favourites", args=(self.latest_vac_first['external_id'], )), 
             query_params={
@@ -216,7 +205,7 @@ class VacanciesViewsTests(TestCase):
 
     def test_add_vacancy_to_favorites_parse_mode_non_existed(self):
         '''Проверка: невозможность добавления вакансии в избранное из несуществующего ресурса'''
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.post(
             reverse("vacancies:add_vacancy_to_favourites", args=(self.latest_vac_first['external_id'], )), 
             query_params={
@@ -231,7 +220,7 @@ class VacanciesViewsTests(TestCase):
     def test_adding_already_added_to_favourites_vacancy(self):
         '''Проверка: невозможность добавления в избранное уже добавленной вакансии'''
         vac = Vacancy.objects.all().first()
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.post(
             reverse("vacancies:add_vacancy_to_favourites", args=(vac.external_id, )), 
             query_params={
@@ -245,7 +234,7 @@ class VacanciesViewsTests(TestCase):
 
     def test_add_vacancy_to_favourites_creating_firm(self):
         '''Проверка: создание фирмы (или просто получение её инфы, если уже существует фирма) при добавлении вакансии в избранное'''
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         # old firm
         response_with_old_firm = self.client.post(
             reverse("vacancies:add_vacancy_to_favourites", args=(self.latest_vac_first['external_id'], )), 
@@ -270,7 +259,7 @@ class VacanciesViewsTests(TestCase):
     
     def test_add_vacancy_to_favourites_view_was_vacancy_added_correctly(self):
         '''Проверка корректного добавления вакансии в избранное'''
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response = self.client.post(
             reverse("vacancies:add_vacancy_to_favourites", args=(self.latest_vac_second['external_id'], )), 
             query_params={
@@ -303,7 +292,7 @@ class VacanciesViewsTests(TestCase):
         self.assertEqual(urlparse(response_anon.url).path, reverse('accounts:login'))
 
         #authenticated
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response_auth = self.client.post(
             reverse("vacancies:remove_vacancy_from_favourites", args=(self.vacancy.external_id, )), 
             query_params={
@@ -329,7 +318,7 @@ class VacanciesViewsTests(TestCase):
         self.client.logout()
 
         # owner
-        self.client.login(email=self.applicant_email, password=self.applicant_password)
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
         response_owner = self.client.post(
             reverse("vacancies:remove_vacancy_from_favourites", args=(self.vacancy.external_id, )), 
             query_params={
@@ -338,3 +327,16 @@ class VacanciesViewsTests(TestCase):
         )
         self.assertEqual(Vacancy.objects.all().count(), 0) # 1 -> 0
         self.assertEqual(urlparse(response_owner.url).path, reverse("vacancies:favourite_vacancies"))
+
+    def test_recommended_vacancies_are_login_required(self):
+        '''Проверка: только авторизованный пользователь может попасть на страницу c рекомендованными вакансиями'''
+        #anonymous
+        response_anon = self.client.get(reverse('vacancies:recom_vacancies'))
+        self.assertEqual(response_anon.status_code, 302)
+        self.assertEqual(urlparse(response_anon.url).path, reverse('accounts:login'))
+
+        #authenticated
+        self.client.login(username=self.applicant_username, password=self.applicant_password)
+        response_auth = self.client.get(reverse('vacancies:recom_vacancies'))
+        self.assertEqual(response_auth.status_code, 200)
+    

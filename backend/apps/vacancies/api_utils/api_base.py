@@ -5,7 +5,7 @@ from .constants import NUMBER_OF_VACANCIES_TO_BE_FOUND
 def get_vacancies_from_combined_api_sources(applicant_city_ru_format: str, query="", salary_from=0, number_of_vacancies=NUMBER_OF_VACANCIES_TO_BE_FOUND, are_for_recommendations=False) -> list:
     hh_pages_count, superjob_pages_count = 1, 1
     if are_for_recommendations:
-        hh_pages_count = 15
+        hh_pages_count = 17
         superjob_pages_count = 4
     headhunter_vacancies = get_vacancies_from_headhunter_source(
         query, 

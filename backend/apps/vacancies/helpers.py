@@ -1,19 +1,20 @@
+from datetime import date
 import re
 
 from bs4 import BeautifulSoup
 import emoji
-from forex_python.converter import CurrencyRates
+from currency_converter import CurrencyConverter
 
 from django.db.models.query import QuerySet
 
 from config.settings import SPECIALIZATIONS_LIST
 from apps.accounts.models import Applicant
-from .api_utils.constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS, NOT_FOUND_WORK_COND
+from .api_utils.constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS
 from .models import Vacancy, SearchHistory
 
 ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS = [
     'Python', 'TypeScript', 'Javascript', 'Rust', 'C#', 'C++', 'Swift', 'Kotlin', 'Flutter', 'Java', 'Go', 'Ruby',
-    'PHP', 'HTML', 'XML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap' 'React', 'Vue', 'Angular', 'Git', 'Gitlab', 'Docker', 'Kubernetes', 
+    'PHP', 'HTML', 'XML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap', 'React', 'Vue', 'Angular', 'Git', 'Gitlab', 'Docker', 'Kubernetes', 
     'MySQL', 'PostgreSQL', 'SQLite', 'MongoDB', 'Redis', 'Elasticsearch', 'ClearML', 'MLFlow', 'NLTK', 'TensorFlow', 'Scikit-learn', 
     'NLP', 'CV', 'LLM', '1С', 'GraphQL', 'REST', 'RabbitMQ', 'Kafka', 'Apache', 'Linux', 'Excel',
     'ML', 'AI', 'ChatGPT', 'Grok', 'Gemini',
@@ -21,7 +22,7 @@ ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS = [
 ]
 ALL_KEYWORDS_LIST = SPECIALIZATIONS_LIST + ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS
 
-cu = CurrencyRates()
+cu = CurrencyConverter()
 
 SECTION_DUTIES_NAMES = (
     r'Какие задачи тебя ждут[?:]?[\n]|Задачи, которые вам предстоит решать[?:]?[\n]|Круг задач[?:]?[\n]|Верхнеуровневое описание задач[?:]?[\n]|Задачи, которые тебе нужно будет решить[?:]?[\n]|'
@@ -162,7 +163,7 @@ def extract_duties_requirements_working_conditions_by_keywords(text):
 
     return result
 
-def extract_keywords_from_lists(text: str) -> str:
+def extract_keywords_from_text(text: str) -> str:
     text_lower = text.lower()
     keywords = [i.lower() for i in ALL_KEYWORDS_LIST]
     founed_keywords = set()
@@ -180,13 +181,13 @@ def get_payment_from_hh_vacancy(salary_data: dict | None) -> list:
         payment_to = 0 if salary_data["to"] == None else salary_data["to"]
     return [payment_from, payment_to]
 
-def convert_vacancy_payment_to_ru_currency(vacancy: Vacancy) -> list:
+def convert_vacancy_payment_to_ru_currency(curr: str, payment_from: int, payment_to: int) -> list:
     '''Возвращает переведённую валюту с иностранной на рубли, если сама валюта (vacancy.currency) не рубли'''
-    if vacancy.currency != "RUR":
-        payment_from = cu.convert(vacancy.currency, 'RUR', vacancy.payment_from)
-        payment_to = cu.convert(vacancy.currency, 'RUR', vacancy.payment_to)
-        return [payment_from, payment_to]
-    return [vacancy.payment_from, vacancy.payment_to]
+    if curr != "RUR":
+        new_payment_from = cu.convert(payment_from, curr, 'RUB', date=date(2022, 3, 1))
+        new_payment_to = cu.convert(payment_to, curr, 'RUB', date=date(2022, 3, 1))
+        return [new_payment_from, new_payment_to]
+    return [payment_from, payment_to]
 
 def get_applicant_criterias_for_filtering_vacancies(user: Applicant) -> dict:
     '''Возвращает информацию о пользователе для дальнейшей генерации персональных вакансий'''
@@ -209,7 +210,11 @@ def get_applicant_favourite_vacancies_info_for_filtering_vacancies(vacancies: Qu
     '''Возвращает информацию о избранных вакансиях пользователя для дальнейшей генерации персональных рекомендаций'''
     applicant_fav_vacancies_data = {}
     for vacancy in vacancies:
-        payment_from_ru, payment_to_ru = convert_vacancy_payment_to_ru_currency(vacancy)
+        payment_from_ru, payment_to_ru = convert_vacancy_payment_to_ru_currency(
+            vacancy.currency, 
+            vacancy.payment_from, 
+            vacancy.payment_to
+        )
         duties = [] if vacancy.duties == NOT_FOUND_DUTIES else vacancy.duties.split(';')
         reqs = [] if vacancy.requirements == NOT_FOUND_REQS else vacancy.requirements.split(';')
         applicant_fav_vacancies_data[vacancy.id] = {

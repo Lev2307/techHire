@@ -2,7 +2,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 from apps.accounts.models import EXPERIENCE_CHOICES
-from ..helpers import extract_keywords_from_lists
+from ..helpers import extract_keywords_from_text
 from ..models import WorkFormat, Vacancy
 
 MAX_PAYMENT_DIFF = 50_000
@@ -60,7 +60,7 @@ def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy:
     '''
     favourites_texts_keywords = []
     for key, value in favourites.items():
-        keywords = extract_keywords_from_lists(" ".join(favourites[key].get('vacancy_texts')))
+        keywords = extract_keywords_from_text(" ".join(favourites[key].get('vacancy_texts')))
         favourites_texts_keywords.append(keywords)
 
     vectorizer = TfidfVectorizer()

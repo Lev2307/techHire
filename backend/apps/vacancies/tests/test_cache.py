@@ -53,7 +53,7 @@ class VacanciesCacheTests(TestCase):
 
     def test_get_superjob_vacancy_from_cache_hit(self):
         '''Проверка на корректность кэширования вакансии (24 часа) из api Superjob'''
-        superjob_latest_vac_id = "51394853"
+        superjob_latest_vac_id = "51320730"
         # vacancy not stored in cache
         self.assertEqual(cache.get(f"SUPERJOB_VACANCY_ID_{superjob_latest_vac_id}"), None)
 
