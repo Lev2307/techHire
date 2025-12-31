@@ -59,7 +59,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
     }
 
 def superjob_fetch_page(page, params, headers):
-    params["page"] = page+1
+    params["page"] = page
     response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=headers, params=params).json()
     return response
 
@@ -82,7 +82,7 @@ def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str
 
     vacancies = []
     if pages_count > 1:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(
                 superjob_fetch_page,
                 page,
@@ -96,13 +96,15 @@ def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str
     else:
         response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=SUPERJOB_API_HEADERS, params=params)
         vacancies = response.json().get("objects")
+        
+    print(len(vacancies))    
     for i in range(len(vacancies)):
         text = vacancies[i]['candidat']
         parsed_options = extract_duties_requirements_working_conditions_by_keywords(text)
         vacancy_overrided = parse_vacancy_superjob_data(vacancies[i], parsed_options)
         vacancies[i].clear()
         vacancies[i] = vacancy_overrided
-    print(len(vacancies))
+    print(f'superjob vacancies - {len(vacancies)}')
     return vacancies
 
 def get_superjob_vacancy_data_from_api(external_id: str) -> dict:

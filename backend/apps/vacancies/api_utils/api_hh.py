@@ -47,10 +47,28 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
         }
     }
 
+def override_hh_vacancy_data_to_own_format(vacancies: list, headers: dict) -> list:
+    '''
+        Переопределение данных вакансий, полученных из API HH, в собственный унифицированный формат
+    '''
+    for i in range(len(vacancies)):
+        vacancy_desc = get_hh_vacancy_from_cache(vacancies[i]["id"], headers, get_only_desc=True)
+        if vacancy_desc != {}:
+            parsed_options = extract_duties_requirements_working_conditions_by_keywords(vacancy_desc)
+            
+            vacancy_overrided = parse_vacancy_hh_data(vacancies[i], parsed_options)
+            vacancies[i].clear()
+            vacancies[i] = vacancy_overrided
+        else:
+            vacancies[i].clear()
+    return vacancies
+
+
 def hh_fetch_page(page, params, headers):
-    params["page"] = page+1
+    params["page"] = page
     response = requests.get("https://api.hh.ru/vacancies", headers=headers, params=params).json()
     return response
+
 
 def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: str, salary_from: int, pages_count: int, are_for_recommendations: bool, count=NUMBER_OF_VACANCIES_TO_BE_FOUND) -> list:
     """Возвращает вакансии с api HH.ru, отфильтрованные по пользовательским критериям: ключевые слова - query, город - area, сфера IT - professional_role, минимальная зарплата (опционально) - salary"""
@@ -75,7 +93,7 @@ def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: s
     # if pages gt 1
     vacancies = []
     if pages_count > 1:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(
                 hh_fetch_page,
                 page,
@@ -89,14 +107,31 @@ def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: s
     else:
         response = requests.get("https://api.hh.ru/vacancies", headers=HH_API_HEADERS, params=params)
         vacancies = response.json().get("items")
-    for i in range(len(vacancies)):
-        vacancy_desc = get_hh_vacancy_from_cache(vacancies[i]["id"], HH_API_HEADERS, get_only_desc=True)
-        parsed_options = extract_duties_requirements_working_conditions_by_keywords(vacancy_desc)
-        
-        vacancy_overrided = parse_vacancy_hh_data(vacancies[i], parsed_options)
-        vacancies[i].clear()
-        vacancies[i] = vacancy_overrided
-    print(len(vacancies))
+
+    # оптимизация переопределения вакансий в нужный формат
+    if are_for_recommendations:
+        vacancies_partition = [[] for _ in range(pages_count)] # разбиение списка вакансий на отдельные списки по 100 штук каждый
+        c, pos = 0, 0
+        for i in range(len(vacancies)):
+            c += 1
+            vacancies_partition[pos].append(vacancies[i])
+            if c == 100:
+                pos += 1
+                c = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=25) as executor:
+            vacancies = []
+            futures = [executor.submit(
+                override_hh_vacancy_data_to_own_format,
+                vacancies_partition[part].copy(),
+                HH_API_HEADERS
+            ) for part in range(len(vacancies_partition))]
+            print(len(futures))
+            for future in concurrent.futures.as_completed(futures):
+                for vac in future.result():
+                    vacancies.append(vac)
+            print(f'all vacancies overrided - {len(vacancies)}')
+    else:   
+        vacancies = override_hh_vacancy_data_to_own_format(vacancies, headers=HH_API_HEADERS)
     return vacancies
 
 

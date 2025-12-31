@@ -45,12 +45,15 @@ def get_superjob_vacancy_from_cache(external_id: str, headers: dict):
 
 def get_hh_vacancy_from_cache(external_id: str, headers: dict, get_only_desc=False):
     if not cache.get(f"HH_VACANCY_ID_{external_id}"):
-        response = requests.get(f"https://api.hh.ru/vacancies/{external_id}/", headers=headers)
-        if response.status_code == 200:
-            vac = response.json()
-            cache.set(f"HH_VACANCY_ID_{external_id}", vac, timeout=3600*24)
-            return vac["description"] if get_only_desc else vac
-        return {}
+        try:
+            response = requests.get(f"https://api.hh.ru/vacancies/{external_id}/", headers=headers, timeout=30)
+            if response.status_code == 200:
+                vac = response.json()
+                cache.set(f"HH_VACANCY_ID_{external_id}", vac, timeout=3600*24)
+                return vac["description"] if get_only_desc else vac
+            return {}
+        except requests.ConnectionError:
+            return {}
     else:
         vac_from_cache = cache.get(f"HH_VACANCY_ID_{external_id}")
         return vac_from_cache["description"] if get_only_desc else vac_from_cache

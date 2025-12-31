@@ -76,7 +76,7 @@ SECTION_REQUIREMENTS_NAMES = (
     r'Жд[её]м мы жд[её]м от тебя[?:]?[\n]|Мы ждем, что вы обладаете[?:]?[\n]|Мы подходим друг другу, если ты обладаешь следующим опытом и знаниями[?:]?[\n]|'
     r'Пожелания к твоему опыту[?:]?[\n]|Какие знания, навыки и опыт необходимы для реализации задач.*?[:?]?[\n]|Мы рассчитываем, что ты[?:]?[\n]|'
     r'Наш стек в тестировании[?:]?[\n]|Что для этого необходимо[?:]?[\n]|Чего команда ожидает[?:]?[\n]|Требования и компетенции[?:]?[\n]|Какой опыт и навыки нужны[?:]?[\n]|'
-    r'Что от Вас требуется[?:]?[\n]'
+    r'Что от Вас требуется[?:]?[\n]|Что важно в вас[?:]?[\n]'
     
 )
 
@@ -200,6 +200,7 @@ def get_applicant_criterias_for_filtering_vacancies(user: Applicant) -> dict:
     applicant_data = {
         'city': user.get_city_display(), # city in ru format
         'experience': user.get_experience_display(), # experience in ru format
+        'experience_eng': user.experience,
         'preferred_work_format': [wf.name for wf in user.preferred_work_format.all()],
         'specializations': " ".join([spec.name for spec in user.specializations.all()]),
         'technologies': " ".join(applicant_technologies),
@@ -222,6 +223,7 @@ def get_applicant_favourite_vacancies_info_for_filtering_vacancies(vacancies: Qu
             'vacancy_texts': duties + reqs,
             'payment_from': payment_from_ru, # зп от в рублях
             'payment_to': payment_to_ru, # зп до в рублях
+            'experience_eng': vacancy.experience,
             'experience': vacancy.get_experience_display(), # experience in ru format,
             'education': vacancy.get_education_display(), # education in ru format,
             'work_format': [wf.name for wf in vacancy.work_format.all()],
