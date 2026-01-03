@@ -8,6 +8,7 @@ from django.views import generic, View
 
 from apps.accounts.models import Applicant
 from .api_utils import get_vacancies_from_combined_api_sources, get_hh_vacancy_data_from_api, get_superjob_vacancy_data_from_api
+from .helpers import create_vacancy_model_and_firm_model_instances
 from .models import Vacancy, Firm, SearchHistory, INITIAL_SOURCES
 from .recommendations import get_recommended_vacancies_by_content
 
@@ -77,6 +78,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
             'query': urllib.parse.unquote_plus(request.GET.get('q')),
             'payment_from': request.GET.get('pf')
         }
+        applicant = Applicant.objects.get(username=self.request.user.username)
         if vac_source in list([i[0] for i in INITIAL_SOURCES]):
             if not self.model.objects.filter(external_id=vac_api_id).exists():
                 if vac_source == INITIAL_SOURCES[0][0]:
@@ -84,40 +86,24 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                 else:
                     vacancy_info_from_api = get_hh_vacancy_data_from_api(vac_api_id)
                 if vacancy_info_from_api:
-                    # creating firm if not existed
-                    if not Firm.objects.filter(name=vacancy_info_from_api["employer"]["name"]).exists() and vacancy_info_from_api["employer"]["name"] != "":
-                        firm = Firm.objects.create(
-                            name=vacancy_info_from_api["employer"]["name"],
-                            address=vacancy_info_from_api["employer"]["address"],
-                            link=vacancy_info_from_api["employer"]["alternate_url"],
+                    if self.model.objects.filter(user=self.request.user).count() <= 5: 
+                        create_vacancy_model_and_firm_model_instances(
+                            self.model,
+                            self.request.user,
+                            vacancy_info_from_api
                         )
-                        firm.save()
+                        return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
                     else:
-                        firm = Firm.objects.get(name=vacancy_info_from_api["employer"]["name"])
-                    # creating fav vacancy
-                    vac = self.model.objects.create(
-                        user=self.request.user,
-                        initial_source=vacancy_info_from_api["initial_source"],
-                        external_id=vac_api_id,
-                        title=vacancy_info_from_api["title"],
-                        duties=vacancy_info_from_api["duties"],
-                        requirements=vacancy_info_from_api["requirements"],
-                        working_conditions=vacancy_info_from_api["working_conditions"],
-                        payment_from=vacancy_info_from_api["payment"]["payment_from"],
-                        payment_to=vacancy_info_from_api["payment"]["payment_to"],
-                        currency=vacancy_info_from_api["payment"]["currency"],
-                        experience=vacancy_info_from_api["experience"],
-                        education=vacancy_info_from_api["education"],
-                        date_published=vacancy_info_from_api["date_published"],
-                        valid_until=vacancy_info_from_api["valid_until"],
-                        original_link=vacancy_info_from_api["original_link"],
-                        firm=firm
-                    )
-                    vac.work_format.add(*vacancy_info_from_api["work_formats"])
-                    return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
-                return HttpResponse('Wrong vacancy id!')
-            return HttpResponse('Was already added to favorites!')
-        return HttpResponse('Wrong parse_from query param')
+                        if applicant.is_sub:
+                            create_vacancy_model_and_firm_model_instances(
+                                self.model,
+                                self.request.user,
+                                vacancy_info_from_api
+                            )
+                        return HttpResponse('Вы должны быть сабом, чтобы добавлять в избранное больше 5-ти вакансий!')
+                return HttpResponse('Неправильное id вакансии!')
+            return HttpResponse('Вакансия уже была добалена в избранное!')
+        return HttpResponse('Неправильный параметр parse_from')
     
 class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     model = Vacancy

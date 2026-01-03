@@ -83,6 +83,7 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
     preferred_work_format = models.ManyToManyField('vacancies.WorkFormat')
     linked_telegram = models.OneToOneField(ApplicantLinkedTelegram, on_delete=models.CASCADE, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
+    is_sub = models.BooleanField(default=False) # есть ли подписка у аппликанта (пока будет просто как флаг, потом мб сделаю платёжную систему для неё)
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []

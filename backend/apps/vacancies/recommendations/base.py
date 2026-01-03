@@ -34,12 +34,13 @@ def filter_vacancies_by_similarity(
 
     vacancies_texts_keywords = []
     for vac in vacancies:
+        title = vac.get("title").split()
         duties = vac.get('duties') if vac.get('duties') != NOT_FOUND_DUTIES else []
         reqs = vac.get('requirements') if vac.get('requirements') != NOT_FOUND_REQS else []
-        keywords = extract_keywords_from_text(" ".join(duties + reqs))
+        keywords = extract_keywords_from_text(" ".join(title*2 + duties + reqs))
         vacancies_texts_keywords.append(keywords)
 
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(token_pattern=r'(?u)\b\w[\w\+#]*\b')
 
     tfidf_matrix = vectorizer.fit_transform(
         [applicant_text_skills_with_his_search_history] + vacancies_texts_keywords
@@ -54,9 +55,10 @@ def filter_vacancies_by_similarity(
         similarity_with_applicant_profile_ratio = calculate_total_similarity_between_appilicant_profile_and_vacancy(
             applicant_profile=applicant_data, 
             vacancy=vacancy,
-            tech_similarity=similarities[0][idx]*2
+            tech_similarity=similarities[0][idx]
         )
         total_similarity = similarity_with_applicant_profile_ratio
+        # print(total_similarity, vacancy["title"], similarities[0][idx])
         if len(applicant_favourites_vacancies_data.keys()) > 0:
             similarity_with_favourites_ratio = calculate_total_similarity_between_vacancy_and_applicant_favourites(
                 vacancy=vacancy,
@@ -65,11 +67,11 @@ def filter_vacancies_by_similarity(
             )
             total_similarity += similarity_with_favourites_ratio
             if total_similarity >= threshold:
-                filtered_vacancies.append((vacancy, total_similarity))
+                filtered_vacancies.append((vacancy, similarities[0][idx], total_similarity))
         else:
             if total_similarity >= threshold-0.2:
-                filtered_vacancies.append((vacancy, total_similarity))
-    filtered_vacancies.sort(key=lambda x: x[1], reverse=True)
+                filtered_vacancies.append((vacancy, similarities[0][idx], total_similarity))
+    filtered_vacancies.sort(key=lambda x: (x[2], x[1]), reverse=True)
     return [i[0] for i in filtered_vacancies][:12] # get top 12 recommended
 
 

@@ -50,7 +50,7 @@ class VacanciesViewsTests(TestCase):
             payment_from=0, 
             payment_to=0, 
             currency='RUR',
-            experience='От 3 лет', 
+            experience='Three years', 
             date_published=timezone.now() + timedelta(days=-7), 
             valid_until=timezone.now() + timedelta(days=30),
             initial_source='HH', 
@@ -215,7 +215,7 @@ class VacanciesViewsTests(TestCase):
             }
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode('utf-8'), 'Wrong parse_from query param')
+        self.assertEqual(response.content.decode('utf-8'), 'Неправильный параметр parse_from')
 
     def test_adding_already_added_to_favourites_vacancy(self):
         '''Проверка: невозможность добавления в избранное уже добавленной вакансии'''
@@ -230,7 +230,7 @@ class VacanciesViewsTests(TestCase):
             }
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.content.decode('utf-8'), 'Was already added to favorites!')
+        self.assertEqual(response.content.decode('utf-8'), 'Вакансия уже была добалена в избранное!')
 
     def test_add_vacancy_to_favourites_creating_firm(self):
         '''Проверка: создание фирмы (или просто получение её инфы, если уже существует фирма) при добавлении вакансии в избранное'''

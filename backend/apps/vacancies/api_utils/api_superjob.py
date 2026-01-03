@@ -96,15 +96,13 @@ def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str
     else:
         response = requests.get("https://api.superjob.ru/2.0/vacancies/", headers=SUPERJOB_API_HEADERS, params=params)
         vacancies = response.json().get("objects")
-        
-    print(len(vacancies))    
     for i in range(len(vacancies)):
         text = vacancies[i]['candidat']
         parsed_options = extract_duties_requirements_working_conditions_by_keywords(text)
         vacancy_overrided = parse_vacancy_superjob_data(vacancies[i], parsed_options)
         vacancies[i].clear()
         vacancies[i] = vacancy_overrided
-    print(f'superjob vacancies - {len(vacancies)}')
+    # print(f'superjob vacancies - {len(vacancies)}')
     return vacancies
 
 def get_superjob_vacancy_data_from_api(external_id: str) -> dict:

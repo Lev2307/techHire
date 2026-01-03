@@ -125,11 +125,10 @@ def get_vacancies_from_headhunter_source(query: str, applicant_city_ru_format: s
                 vacancies_partition[part].copy(),
                 HH_API_HEADERS
             ) for part in range(len(vacancies_partition))]
-            print(len(futures))
             for future in concurrent.futures.as_completed(futures):
                 for vac in future.result():
                     vacancies.append(vac)
-            print(f'all vacancies overrided - {len(vacancies)}')
+            # print(f'all vacancies overrided - {len(vacancies)}')
     else:   
         vacancies = override_hh_vacancy_data_to_own_format(vacancies, headers=HH_API_HEADERS)
     return vacancies

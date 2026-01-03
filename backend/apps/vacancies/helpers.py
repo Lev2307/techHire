@@ -10,14 +10,14 @@ from django.db.models.query import QuerySet
 from config.settings import SPECIALIZATIONS_LIST
 from apps.accounts.models import Applicant
 from .api_utils.constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS
-from .models import Vacancy, SearchHistory
+from .models import Firm, Vacancy, SearchHistory
 
 ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS = [
     'Python', 'TypeScript', 'Javascript', 'Rust', 'C#', 'C++', 'Swift', 'Kotlin', 'Flutter', 'Java', 'Go', 'Ruby',
     'PHP', 'HTML', 'XML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap', 'React', 'Vue', 'Angular', 'Git', 'Gitlab', 'Docker', 'Kubernetes', 
     'MySQL', 'PostgreSQL', 'SQLite', 'MongoDB', 'Redis', 'Elasticsearch', 'ClearML', 'MLFlow', 'NLTK', 'TensorFlow', 'Scikit-learn', 
     'NLP', 'CV', 'LLM', '1С', 'GraphQL', 'REST', 'RabbitMQ', 'Kafka', 'Apache', 'Linux', 'Excel',
-    'ML', 'AI', 'ChatGPT', 'Grok', 'Gemini',
+    'ML', 'AI', 'ChatGPT', 'Grok', 'Gemini', 'Senior', 'Middle', 'Junior',
     'Django', 'Spark', 'Flask', 'FastApi', 'NestJS', 'Express', 'Laravel', 'Spring', 'Figma', 'AdobeXd'
 ]
 ALL_KEYWORDS_LIST = SPECIALIZATIONS_LIST + ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS
@@ -61,7 +61,7 @@ SECTION_REQUIREMENTS_NAMES = (
     r'Необходимо иметь[?:]?[\n]|Пожелания к соискателю[?:]?[\n]|Пожелания к кандидату[?:]?[\n]|Что нужно знать и уметь[?:]?[\n]|Необходимый опыт и знания[?:]?[\n]|'
     r'Знания и навыки[?:]?[\n]|Обязательные навыки[?:]?[\n]|Основные навыки[?:]?[\n]|Ты идеальный кандидат, если.*?[?:]?[\n]|Опыт и навыки[?:]?[\n]|Необходимые знания[?:]?[\n]|Требуемые навыки[?:]?[\n]|'
     r'Ваш профиль[?:]?[\n]|Желательно[?:]?[\n]|у Вас есть[?:]?[\n]|Потребуется[?:]?[\n]|Мы ищем кандидата, у которого есть[?:]?[\n]|'
-    r'Что для этого понадобится  навыки и опыт[?:]?[\n]|Ожидания по опыту.*?[?:]?[\n]|Кто нам нужен[?:]?[\n]|Что нужно, чтобы к нам присоединиться[?:]?[\n]|'
+    r'Что для этого понадобится  навыки и опыт[?:]?[\n]|Требуемый опыт и навыки[?:]?[\n]|Ожидания по опыту.*?[?:]?[\n]|Кто нам нужен[?:]?[\n]|Что нужно, чтобы к нам присоединиться[?:]?[\n]|'
     r'Что хотим[?:]?[\n]|Что мы хотим видеть от Вас[?:]?[\n]|Что мы хотим увидеть[?:]?[\n]|Что важно для этой роли[?:]?[\n]|Необходимые навыки и квалификации[?:]?[\n]|'
     r'Вы точно нам подходите, если вы уверенный специалист хотя бы в одной из этих областей[?:]?[\n]|Вы нам подходите,? если[?:]?[\n]|'
     r'Наши пожелания[?:]?[\n]|Мы сработаемся, если есть[?:]?[\n]|Для выполнения задач необходимы[?:]?[\n]|Кого мы ищем[?:]?[\n]|'
@@ -95,7 +95,7 @@ SECTION_WORKING_CONDITIONS_NAMES = (
     r'#Киберплюшки для наших сотрудников[?:]?[\n]|Что получишь[?:]?[\n]|Условия и Бенефиты[?:]?[\n]|Готовы предложить[?:]?[\n]|Мы гарантируем своим сотрудникам[?:]?[\n]|'
     r'Любим стратегию .*? и взамен готовы предлагать[?:]?[\n]|Почему с нами классно[?:]?[\n]|Что по условиям[?:]?[\n]|Взамен мы предлагаем[?:]?[\n]|Условия и оплата[?:]?[\n]|'
     r'Само собой[?:]?[\n]|Если ты способен.*|От вас мы жд[её]м[?:]?[\n]|Приветствуется .*?:[\n]|Чем мы обеспечим[?:]?[\n]|Работа с нами.*?[?:]?[\n]|Почему с нами классно|Условия И гарантии[?:]?[\n]|'
-    r'Условия для сотрудников[?:]?[\n]|Что мы обеспечим[?:]?[\n]|Предложение[?:]?[\n]|Главный принцип.*?[\n]|Мы предлагаем тебе.*?[\n]|Компенсация включает в себя[?:]?[\n]|Что предлагаем мы[?:]?[\n]'
+    r'Условия для сотрудников[?:]?[\n]|Что мы обеспечим[?:]?[\n]|Предложение[?:]?[\n]|Главный принцип.*?[\n]|Мы предлагаем тебе.*?[\n]|Компенсация включает в себя[?:]?[\n]|Что предлагаем мы[?:]?[\n]|Что взамен[?:]?[\n]'
 )
 
 KEYWORDS_END_OF_SECTIONS = (
@@ -108,8 +108,8 @@ KEYWORDS_END_OF_SECTIONS = (
     r'Мы уверены, что вам понравится .*[?:\n]?|О команде[?:\n]?|Ключевые навыки[?:]?[\n]|Если интересно, напиши .*[?:]?|От HR кандидату[?:]?[\n]|Дополнительно[?:]?[\n]|'
     r'Если тебе откликается .*[?:\n]?|Жд[её]м отклик.*|Жд[её]м твоего отклика.*|Звучит как твой следующий шаг[?:\n]?|Присоединяйтесь к команде.*|'
     r'Собеседование[?:]?[\n]|Перспективы[?:]?[\n]|Жд[её]м Ваши отклики.*|Одна из ценностей .*[?:]?[\n]|Основной язык программирования.*?[\n]|Технологии, которые мы используем[?:]?[\n]|'
-    r'Процесс отбора[?:]?[\n]|Про наш стек технологий[?:]?[\n]|А еще у нас есть[?:]?[\n]|А еще[?:]?[\n]|Как откликнуться[?:]?[\n]|Хочешь работать над системой.*|Помимо работы[?:]?[\n]|'
-    r'Жд[её]м Вашего откликаю.*?|Welcome to.*|Если наша вакансия тебе откликнулась.*|Присоединяйтесь к нам.*|Что вы получите[?:]?[\n]|Программа стажировки[?:]?[\n]|Обязательный Этап Отбора.*|Как подать заявку.*'
+    r'Процесс отбора[?:]?[\n]|Про наш стек технологий[?:]?[\n]|А еще у нас есть[?:]?[\n]|А еще[?:]?[\n]|Как откликнуться[?:]?[\n]|Хочешь работать над системой.*|Помимо работы[?:]?[\n]|Узнайте подробности ДО собеседования.*?|'
+    r'Жд[её]м Вашего откликаю.*?|Welcome to.*|Если наша вакансия тебе откликнулась.*|Присоединяйтесь к нам.*|Что вы получите[?:]?[\n]|Программа стажировки[?:]?[\n]|Обязательный Этап Отбора.*|Как подать заявку.*|Конкурс[?:]?[\n]'
 )
 
 
@@ -164,14 +164,18 @@ def extract_duties_requirements_working_conditions_by_keywords(text):
     return result
 
 def extract_keywords_from_text(text: str) -> str:
+    if not text:
+            return ""
+        
     text_lower = text.lower()
-    keywords = [i.lower() for i in ALL_KEYWORDS_LIST]
-    founed_keywords = set()
-    for keyword in keywords:
-        if keyword in text_lower:
-            founed_keywords.add(keyword)
-
-    return " ".join(list(founed_keywords))
+    found_keywords = []
+    keywords_lower = [i.lower() for i in ALL_KEYWORDS_LIST]
+    
+    for keyword in keywords_lower:
+        matches = re.findall(r'\b' + re.escape(keyword) + r'\b', text_lower)
+        if matches:
+            found_keywords.extend(matches)
+    return " ".join(found_keywords)
 
 def get_payment_from_hh_vacancy(salary_data: dict | None) -> list:
     if salary_data == None:
@@ -233,3 +237,35 @@ def get_applicant_favourite_vacancies_info_for_filtering_vacancies(vacancies: Qu
 def get_applicant_search_history_info_for_filtering_vacancies(search_history: QuerySet[SearchHistory]):
     '''Возвращает информацию о истории поиска пользователя для дальнейшей генерации персональных рекомендаций'''
     return [sh.search_query for sh in search_history]
+
+def create_vacancy_model_and_firm_model_instances(model: Vacancy, user: Applicant, vacancy_data: dict):
+    '''Создаёт модель вакансии и модель фирмы'''
+    if not Firm.objects.filter(name=vacancy_data["employer"]["name"]).exists() and vacancy_data["employer"]["name"] != "":
+        firm = Firm.objects.create(
+            name=vacancy_data["employer"]["name"],
+            address=vacancy_data["employer"]["address"],
+            link=vacancy_data["employer"]["alternate_url"],
+        )
+        firm.save()
+    else:
+        firm = Firm.objects.get(name=vacancy_data["employer"]["name"])
+    # creating vacancy instance
+    vac = model.objects.create(
+        user=user,
+        initial_source=vacancy_data["initial_source"],
+        external_id=vacancy_data["external_id"],
+        title=vacancy_data["title"],
+        duties=vacancy_data["duties"],
+        requirements=vacancy_data["requirements"],
+        working_conditions=vacancy_data["working_conditions"],
+        payment_from=vacancy_data["payment"]["payment_from"],
+        payment_to=vacancy_data["payment"]["payment_to"],
+        currency=vacancy_data["payment"]["currency"],
+        experience=vacancy_data["experience"],
+        education=vacancy_data["education"],
+        date_published=vacancy_data["date_published"],
+        valid_until=vacancy_data["valid_until"],
+        original_link=vacancy_data["original_link"],
+        firm=firm
+    )
+    vac.work_format.add(*vacancy_data["work_formats"])

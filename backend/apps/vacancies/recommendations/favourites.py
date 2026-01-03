@@ -17,7 +17,7 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
     if fav_work_formats == vacancy_work_formats:
         work_format_similarity_ratio = 1 * 0.15
         if len(fav_work_formats) > 1 and len(vacancy_work_formats) > 1:
-            work_format_similarity_ratio = 1 * 0.25
+            work_format_similarity_ratio = 1 * 0.22
     else:
         for i in range(len(vacancy_work_formats)):
             if vacancy_work_formats[i] in fav_work_formats:
@@ -25,17 +25,18 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
 
     experience_similarity_ratio = 0
     if vacancy["experience_ru"] == fav["experience"]:
-        experience_similarity_ratio = 1 * 0.25
+        experience_similarity_ratio = 1 * 0.15
     else:
         applicant_profile_experience_index = EXPERIENCE_CHOICES.index((fav["experience_eng"], fav["experience"]))
         vacancy_experience_index = EXPERIENCE_CHOICES.index((vacancy["experience"], vacancy["experience_ru"]))
         if applicant_profile_experience_index > vacancy_experience_index:
-            experience_similarity_ratio = 0.85 * 0.25
+            experience_similarity_ratio = 0.85 * 0.15
 
     # рассчёт совпадения заработной платы у вакансий
     fav_payment_from, fav_payment_to = fav["payment_from"], fav["payment_to"]
     vacancy_payment_from, vacancy_payment_to = vacancy["payment"]["payment_from"], vacancy["payment"]["payment_to"]
     payment_similarity_ratio = 0
+    payment_similarity_coef = 0.1
     if vacancy["payment"]["by_agreement"] and (fav_payment_to == 0 and fav_payment_from == 0):
         payment_similarity_ratio = 0.75
     if not vacancy["payment"]["by_agreement"]:
@@ -55,7 +56,10 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
                 payment_similarity_ratio = 1 if abs(vacancy_payment_to - fav_payment_to) <= MAX_PAYMENT_DIFF else 0
         else:
             payment_similarity_ratio = 1 if abs(vacancy_payment_from - fav_payment_from) <= MAX_PAYMENT_DIFF else 0
-    payment_similarity_ratio = payment_similarity_ratio * 0.1
+
+    if vacancy["payment"]["payment_from"] >= 200_000 or vacancy["payment"]["payment_to"] >= 400_000:
+        payment_similarity_coef = 0.15
+    payment_similarity_ratio = payment_similarity_ratio * payment_similarity_coef
     
     total_similarity = similarity_by_keywords * 0.5 + round(work_format_similarity_ratio, 5) + round(experience_similarity_ratio, 5) + round(payment_similarity_ratio, 5)
     return total_similarity
@@ -69,7 +73,7 @@ def calculate_total_similarity_between_vacancy_and_applicant_favourites(vacancy:
         keywords = extract_keywords_from_text(" ".join(favourites[key].get('vacancy_texts')))
         favourites_texts_keywords.append(keywords)
 
-    vectorizer = TfidfVectorizer()
+    vectorizer = TfidfVectorizer(token_pattern=r'(?u)\b\w[\w\+#]*\b')
     tfidf_matrix = vectorizer.fit_transform(
         [vacancy_text_only_keywords] + favourites_texts_keywords
     )
