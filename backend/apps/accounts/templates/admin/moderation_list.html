@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}Модерация списка названий технологий{% endblock title %}
+
+{% block content %}
+    <div>
+        {% for tech in technologies %}
+            <div style="margin-top: 1em;">
+                {{ tech.name }} (создал: {{ tech.creator }})
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="tech_id" value="{{ tech.id }}">
+                    <button name="action" value="approve" type="submit">Одобрить</button>
+                    <button name="action" value="delete" type="submit" style="color:red;">Удалить</button>
+                </form>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock content %}

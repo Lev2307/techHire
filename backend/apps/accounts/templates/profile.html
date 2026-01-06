@@ -3,5 +3,9 @@
 {% block title %}Пользователь - {{ user.username }}{% endblock title %}
 
 {% block content %}
-    <h1>Здарова, {{ user.first_name }}</h1>
+    <div>
+        <h1>Здарова, {{ user.first_name }}</h1>
+        <a href="{% url 'accounts:edit-profile' %}">Изменить профиль</a>
+        <a href="{% url 'accounts:add-own-technology' %}">Добавить собственный инструмент</a>
+    </div>
 {% endblock content %}

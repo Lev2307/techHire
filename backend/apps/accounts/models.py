@@ -3,7 +3,6 @@ import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 from .managers import ApplicantManager
 
@@ -19,21 +18,23 @@ EXPERIENCE_CHOICES = [
 ]
 
 class Specialization(models.Model):
-    name = models.CharField(max_length=60)
-
+    name = models.CharField('Название', max_length=60)
+    
     class Meta:
-        verbose_name = 'Specialization'
-        verbose_name_plural = 'Specializations'
+        verbose_name = 'Специализация'
+        verbose_name_plural = 'Специализации'
 
     def __str__(self):
         return self.name
 
 class Technology(models.Model):
-    name = models.CharField(max_length=60)
+    name = models.CharField('Название', max_length=60)
+    creator = models.ForeignKey('Applicant', on_delete=models.CASCADE, null=True, blank=True)
+    is_approved = models.BooleanField(default=False)
 
     class Meta:
-        verbose_name = 'Technology'
-        verbose_name_plural = 'Technologies'
+        verbose_name = 'Инструмент'
+        verbose_name_plural = 'Инструменты'
 
     def __str__(self):
         return self.name
@@ -89,6 +90,10 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
     REQUIRED_FIELDS = []
 
     objects = ApplicantManager()
+
+    class Meta:
+        verbose_name = 'Соискатель'
+        verbose_name_plural = 'Соискатели'
 
     def __str__(self):
         return self.username

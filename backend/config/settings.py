@@ -149,7 +149,6 @@ SPECIALIZATIONS_LIST = [
     'Data Science',
     'Big Data',
     'DevOps', 
-    'CI/CD',
     'Системный аналитик',
     'QA/Тестирование',
     'Кибербезопасность',
@@ -158,34 +157,15 @@ SPECIALIZATIONS_LIST = [
     'Разработчик игр',
 ]
 
+
 TECHNOLOGIES_LIST = [
-    'Python',
-    'TypeScript/Javascript',
-    'Rust',
-    'C#',
-    'C++',
-    'Swift',
-    'Kotlin',
-    'Flutter',
-    'Java',
-    'Go',
-    'PHP',
-    'HTML, XML',
-    'CSS, SASS, Tailwind, Bootstrap',
-    'React, Vue, Angular',
-    'Git',
-    'Docker/Kubernetes',
-    'SQLite/MySQL/PostgreSQL (Реляционные БД)',
-    'MongoDB/Redis (Не реляционные БД)',
-    'Elasticsearch',
-    'ClearML/MLFlow и т.д (MLOps)',
-    'ChatGPT/Gemini/Grok и т.д (AI-ассистенты)',
-    'NLTK/TensorFlow/Scikit-learn и др. (ML-модули)',
-    'NLP/CV/LLM и др. (Технологии машинного обучения)'
-    '1С',
-    'GraphQL/REST',
-    'Redis/RabbitMQ/Kafka (Брокеры сообщений)',
-    'Linux',
+    'Python', 'JavaScript', 'TypeScript', 'Java', 'C#', 'C++', 'Go', 'Rust', 'PHP', 'Swift', 'Kotlin', # ЯП
+    'React', 'Vue', 'Angular', 'Next.js', 'HTML/CSS', 'Tailwind/SASS', # front
+    'Node.js', 'Django/FastAPI', 'Spring Boot', 'Laravel', 'GraphQL', 'REST', # back
+    'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'Elasticsearch', # db
+    'Docker', 'Kubernetes', 'Git', 'Linux', 'CI/CD', # инфраструктуры
+    'PyTorch/TensorFlow', 'Pandas/NumPy', 'Spark', 'Airflow', # ml
+    'Kafka', 'RabbitMQ', # брокеры сообщений
 ]
 
 SUPERJOB_API_KEY = os.environ.get('SUPERJOB_API_SECRET_KEY')
@@ -199,7 +179,7 @@ HH_API_ACCESS_TOKEN = os.environ.get("HH_API_ACCESS_TOKEN")
 # 2. если всё устроит в рекомендациях (подчернуто) ✅
 # 2.1 тесты к рекомендациям (helpers -> taska -> recommendations) (практически готово) ✅
 # 3. Делаю логин через тг (all-auth) + после логина добавляю привязку специальностей и инструментов с почтой. ✅
-# 4. Добавление собственных навыков и инструментов к себе на аккаунт + /accounts/profile (страница настроек пользорвателя + форма привязки почты) (частично)
+# 4. Добавление собственных инструментов к себе на аккаунт + /accounts/profile (страница настроек пользователя + изменение их) ✅
 # 5. 3+4 в тесты
 # 6. Создание api
 # 7. Тесты api

@@ -3,15 +3,15 @@ import hmac
 import time
 
 from django.contrib.auth import login
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.http import HttpResponse, HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views import generic
 
 from config import settings
-from .forms import ApplicantSignUpForm
-from .models import Applicant, ApplicantLinkedTelegram
+from .forms import ApplicantForm, AddTechnologyForm, TechnologyModerationForm
+from .models import Applicant, ApplicantLinkedTelegram, Technology
 
 class LoginView(generic.View):
     template_name = 'login.html'
@@ -27,14 +27,44 @@ class ProfileView(LoginRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
+        context["add_technology_form"] = AddTechnologyForm
         return context
 
     def get_object(self, queryset=None):
         return self.model.objects.get(username=self.request.user.username)
     
+class EditProfileView(LoginRequiredMixin, generic.UpdateView):
+    model = Applicant
+    form_class = ApplicantForm
+    template_name = 'edit_profile.html'
+    success_url = reverse_lazy('accounts:profile')
+    login_url = reverse_lazy('accounts:login')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_object(self, queryset=None):
+        return self.model.objects.get(username=self.request.user.username)
+
+class AddOwnTechnologyToApplicantView(LoginRequiredMixin, generic.CreateView):
+    model = Technology
+    form_class = AddTechnologyForm
+    template_name = 'add_technology.html'
+    success_url = reverse_lazy('accounts:profile')
+    login_url = reverse_lazy('accounts:login')
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.creator = self.request.user
+        self.object.save()
+
+        return HttpResponseRedirect(self.get_success_url())
+
 def sign_up_view(request):
     if request.method == "POST":
-        form = ApplicantSignUpForm(request.POST)
+        form = ApplicantForm(request.POST)
         if form.is_valid():
             # Linked Telegram instance
             linked_telega = ApplicantLinkedTelegram.objects.create(
@@ -83,11 +113,38 @@ def telegram_auth(request):
                 login(request, applicant)
                 return HttpResponseRedirect(reverse('accounts:profile'))
             else:
-                form = ApplicantSignUpForm()
+                form = ApplicantForm()
                 return render(request, 'signup.html', {'user_data': user_data, 'form': form})
         else:
             return HttpResponseRedirect(reverse('accounts:login'))
     else:
         return HttpResponseRedirect(reverse('accounts:login'))
+
+class PendingTechnologyListView(PermissionRequiredMixin, generic.ListView):
+    model = Technology
+    template_name = 'admin/moderation_list.html'
+    permission_required = 'is_staff'
+    context_object_name = 'technologies'
+
+    def get_queryset(self):
+        return Technology.objects.filter(is_approved=False)
+
+    def post(self, request, *args, **kwargs):
+        tech_id = request.POST.get('tech_id')
+        action = request.POST.get('action')
+        tech = get_object_or_404(Technology, id=tech_id)
+        creator = get_object_or_404(Applicant, username=tech.creator.username)
+
+        if action == 'approve':
+            tech.is_approved = True
+            tech.save() # статус у технологии - approved
+            if not creator.technologies.filter(name=tech.name).exists(): # автоматически присваивается к пользователю после модерации
+                creator.technologies.add(tech)
+                creator.save()
+        elif action == 'delete':
+            tech.delete()
+
+        return HttpResponseRedirect(reverse('accounts:pending_technologies'))
+    
 # cloudflared tunnel run techhiretunnel
 # login from google unfo

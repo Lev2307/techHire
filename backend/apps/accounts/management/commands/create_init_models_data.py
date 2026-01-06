@@ -15,7 +15,7 @@ class Command(BaseCommand):
                 spec = Specialization.objects.create(name=s)
                 spec.save()
             for t in TECHNOLOGIES_LIST:
-                technology = Technology.objects.create(name=t)
+                technology = Technology.objects.create(name=t, is_approved=True)
                 technology.save()
             print('Начальные данные для специализаций и инструментов созданы!')
         else:
