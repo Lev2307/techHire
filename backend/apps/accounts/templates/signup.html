@@ -11,15 +11,6 @@
                 {{ field.label_tag }} {{ field }}
             </p>
         {% endfor %}
-        <p class="field-wrapper">
-            <input type="hidden" name="telega_id" value="{{ user_data.id }}">
-        </p>
-        <p class="field-wrapper">
-            <input type="hidden" name="telega_username" value="{{ user_data.username }}">
-        </p>
-        <p class="field-wrapper">
-            <input type="hidden" name="telega_first_name" value="{{ user_data.first_name }}">
-        </p>
         <button type="submit">Создать аккаунт</button>
     </form>
 {% endblock content %}

@@ -1,11 +1,10 @@
 from datetime import timedelta
 
+from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 
-from config.settings import SPECIALIZATIONS_LIST, TECHNOLOGIES_LIST
-from apps.accounts.models import Applicant
-from apps.accounts.tests.factories import generate_techs, generate_specs
+from apps.accounts.models import Applicant, Specialization, Technology
 from ..api_utils.api_hh import get_hh_vacancy_from_cache
 from ..api_utils.constants import HH_API_HEADERS, NOT_FOUND_WORK_COND
 from ..models import Vacancy, WorkFormat, SearchHistory
@@ -20,14 +19,18 @@ from ..helpers import (
 )
 
 class VacanciesHelpersTests(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        call_command("create_init_models_data")
+        super().setUpTestData()
+
     def setUp(self):
         self.salary_data = get_hh_vacancy_from_cache("128013899", HH_API_HEADERS)["salary"]
         self.username = 'Admin'
         self.password = '123'
-        self.specs_list = [SPECIALIZATIONS_LIST[3], SPECIALIZATIONS_LIST[5], SPECIALIZATIONS_LIST[0]]
-        self.techs_list = [TECHNOLOGIES_LIST[0], TECHNOLOGIES_LIST[2], TECHNOLOGIES_LIST[7], TECHNOLOGIES_LIST[11]]
-        self.specializations = generate_specs(self.specs_list)
-        self.technologies = generate_techs(self.techs_list)
+        self.specs_list = list(Specialization.objects.all().values_list("id", flat=True))
+        self.techs_list = list(Technology.objects.all().values_list("id", flat=True))
         self.wf = WorkFormat.objects.create(name='Очная', name_eng='ON_SITE')
         self.applicant = Applicant.objects.create_user(
             username=self.username,
@@ -35,8 +38,8 @@ class VacanciesHelpersTests(TestCase):
             city='Moscow',
             experience='No exp',
         )
-        self.applicant.specializations.add(*self.specializations)
-        self.applicant.technologies.add(*self.technologies)
+        self.applicant.specializations.add(*[self.specs_list[3], self.specs_list[5], self.specs_list[0]])
+        self.applicant.technologies.add(*[self.techs_list[0], self.techs_list[2], self.techs_list[4], self.techs_list[5], self.techs_list[32]])
         self.applicant.preferred_work_format.add(*[self.wf])
 
         self.search_h1 = SearchHistory.objects.create(user=self.applicant, search_query='Python')
@@ -88,13 +91,13 @@ class VacanciesHelpersTests(TestCase):
     def test_extract_keywords_from_text(self):
         '''Проверка извлечения ключевых навыков/специальностей из текста'''
         text1 = 'Текст состоящий из слов Gemini, Rust, C++. Также в нём присутствует Python и React'
-        text2 = 'Второй текст в нём всего два кийворда Docker и Linux'
+        text2 = 'Второй текст в нём всего два кийворда Docker и Linux, CI/CD'
 
         keywords1 = extract_keywords_from_text(text1)
         keywords2 = extract_keywords_from_text(text2)
 
         self.assertEqual(sorted(keywords1.split()), 'c++ gemini python react rust'.split())
-        self.assertEqual(sorted(keywords2.split()), 'docker linux'.split())
+        self.assertEqual(sorted(keywords2.split()), 'ci/cd docker linux'.split())
 
     def test_getting_from_hh_vacancy(self):
         '''Проверка вывода информации о зарплате из HH вакансии'''
@@ -133,12 +136,13 @@ class VacanciesHelpersTests(TestCase):
 
     def test_getting_applicant_criterias_for_filtering_vacancies(self):
         '''Проверка получения пользовательских критерий (инструменты/специализации, город, опыт работы) для рекомендаций в определённом формате'''
+        specs = list(Specialization.objects.all().values_list("name", flat=True))
+        techs = list(Technology.objects.all().values_list("name", flat=True))
         applicant_data = get_applicant_criterias_for_filtering_vacancies(self.applicant)
-
         self.assertEqual(applicant_data['city'], 'Москва')
         self.assertEqual(applicant_data['experience'], 'Нет опыта')
-        self.assertEqual(applicant_data['specializations'], " ".join(self.specs_list))
-        self.assertEqual(applicant_data['technologies'], " ".join(self.techs_list))
+        self.assertEqual(applicant_data['specializations'], " ".join([specs[0], specs[3], specs[5]]))
+        self.assertEqual(applicant_data['technologies'], " ".join([techs[0], techs[2], techs[4], techs[5], techs[32]]))
 
     def test_getting_applicant_search_history_info_for_filtering_vacancies(self):
         '''Проверка получения информации пользователя о его истории поиска'''

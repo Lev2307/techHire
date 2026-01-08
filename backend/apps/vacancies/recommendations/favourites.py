@@ -58,7 +58,7 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
             payment_similarity_ratio = 1 if abs(vacancy_payment_from - fav_payment_from) <= MAX_PAYMENT_DIFF else 0
 
     if vacancy["payment"]["payment_from"] >= 200_000 or vacancy["payment"]["payment_to"] >= 400_000:
-        payment_similarity_coef = 0.15
+        payment_similarity_coef = 0.125
     payment_similarity_ratio = payment_similarity_ratio * payment_similarity_coef
     
     total_similarity = similarity_by_keywords * 0.5 + round(work_format_similarity_ratio, 5) + round(experience_similarity_ratio, 5) + round(payment_similarity_ratio, 5)

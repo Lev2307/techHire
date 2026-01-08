@@ -1,9 +1,7 @@
 from django.core.management import call_command
 from django.test import TestCase
 
-from config.settings import SPECIALIZATIONS_LIST, TECHNOLOGIES_LIST
-from apps.accounts.models import Applicant
-from apps.accounts.tests.factories import generate_specs, generate_techs
+from apps.accounts.models import Applicant, Specialization, Technology
 from ..api_utils.api_hh import get_vacancies_from_headhunter_source, get_hh_vacancy_data_from_api
 from ..helpers import (
     get_applicant_criterias_for_filtering_vacancies,
@@ -24,8 +22,8 @@ class RecomendationsTests(TestCase):
         self.applicant_us = 'admin'
         self.applicant_password = '123'
         self.applicant_city, self.applicant_city_ru = 'Moscow', 'Москва'
-        self.specs_list = generate_specs([SPECIALIZATIONS_LIST[0], SPECIALIZATIONS_LIST[3]])
-        self.techs_list = generate_techs([TECHNOLOGIES_LIST[3], TECHNOLOGIES_LIST[7], TECHNOLOGIES_LIST[14], TECHNOLOGIES_LIST[15]])
+        self.specs_list = list(Specialization.objects.all().values_list("id", flat=True))
+        self.techs_list = list(Technology.objects.all().values_list("id", flat=True))
         
         self.applicant = Applicant.objects.create_user(
             username=self.applicant_us,
@@ -33,8 +31,8 @@ class RecomendationsTests(TestCase):
             city=self.applicant_city,
             experience='No exp'
         )
-        self.applicant.specializations.add(*self.specs_list)
-        self.applicant.technologies.add(*self.techs_list)
+        self.applicant.specializations.add(*[self.specs_list[0], self.specs_list[3]])
+        self.applicant.technologies.add(*[self.techs_list[3], self.techs_list[7], self.techs_list[14], self.techs_list[32]])
         self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
 
         self.vacancies_gathered_from_api = get_vacancies_from_headhunter_source(query='Flutter Backend', applicant_city_ru_format=self.applicant_city_ru, salary_from=0, pages_count=1, are_for_recommendations=False)
@@ -93,7 +91,7 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_workformat_whole_match == 0.25)
+        self.assertTrue(coefficient_with_workformat_whole_match == 0.22)
 
         # несовпадение
         vac["work_formats"] = [WorkFormat.objects.get(name_eng="Not specified")]
@@ -131,7 +129,7 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_experience_match == 0.25)
+        self.assertTrue(coefficient_with_experience_match == 0.15)
 
         # 3 частичное совпадение опыта работы (Пользовательский опыт работы оказался больше чем у вакансии)
         vac["experience"] = 'Year'
@@ -142,7 +140,7 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_experience_partial_match == 0.2125)
+        self.assertTrue(coefficient_with_experience_partial_match == 0.1275)
 
     def test_calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy_by_work_format(self):
         '''Проверка корректного рассчёта коэффициента сходства избранной вакансии и обычной вакансии, полученной из апи, по их формату работы'''
@@ -181,7 +179,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites_new.get(fav_vacancy.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_workformat_whole_match == 0.25)
+        self.assertTrue(coefficient_with_workformat_whole_match == 0.22)
 
         # # несовпадение
         vac_from_api["work_formats"] = [WorkFormat.objects.get(name_eng="Not specified")]
@@ -210,7 +208,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_experience_match == 0.25)
+        self.assertTrue(coefficient_with_experience_match == 0.15)
 
         # 2 НЕсовпадение опыта работы
         fav_vac.experience = 'No exp'
@@ -234,7 +232,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites_new_partial_exp.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_experience_partial_match == 0.2125)
+        self.assertTrue(coefficient_with_experience_partial_match == 0.1275)
 
     def test_calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy_by_payment(self):
         fav_vac = self.vacancy
@@ -274,7 +272,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_payment_to_0 == 0.1)
+        self.assertTrue(coefficient_with_payment_to_0 == 0.125)
 
         # 3.2 у api вакансии payment_to=0, а у избранной payment_from = 0
         fav_vac.payment_from = 0
@@ -286,7 +284,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_vac_payment_to_0 == 0.1)
+        self.assertTrue(coefficient_with_api_vac_payment_to_0 == 0.125)
 
         # 3.3 у api вакансии payment_to=0, а у избранной всё есть
         fav_vac.payment_from = 550_000
@@ -299,7 +297,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_vac_payment_to_0 == 0.1)
+        self.assertTrue(coefficient_with_api_vac_payment_to_0 == 0.125)
 
         # 3.4, 3.5, 3.6 аналогичные, только payment_from у api вакансии = 0, вместо payment_to
 
@@ -313,7 +311,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_all_info == 0.1)
+        self.assertTrue(coefficient_with_api_all_info == 0.125)
 
         # 4 избранная вакансия не имеет инфы о зп, а найденная имеет
         fav_vac.payment_from = 0

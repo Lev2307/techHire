@@ -10,7 +10,7 @@ def calculate_total_similarity_between_appilicant_profile_and_vacancy(applicant_
     if applicant_work_formats == vacancy_work_formats:
         work_format_similarity_ratio = 1 * 0.15
         if len(applicant_work_formats) > 1 and len(vacancy_work_formats) > 1:
-            work_format_similarity_ratio = 1 * 0.2
+            work_format_similarity_ratio = 1 * 0.22
     else:
         for i in range(len(vacancy_work_formats)):
             if vacancy_work_formats[i] in applicant_work_formats:

@@ -36,7 +36,7 @@ class ApplicantForm(forms.ModelForm):
                 Q(is_approved=True) | Q(creator=user)
             )
 
-class AddTechnologyForm(forms.ModelForm):
+class TechnologyForm(forms.ModelForm):
     name = forms.CharField(
         label="",
         max_length=60,
@@ -60,9 +60,3 @@ class AddTechnologyForm(forms.ModelForm):
             if tech_name.lower() in tech:
                 raise forms.ValidationError('Название инструмента не должно совпадать с названием уже существующего инструмента!!!')
             
-class TechnologyModerationForm(forms.Form):
-    techs_to_approve = forms.ModelMultipleChoiceField(
-        queryset=Technology.objects.filter(is_approved=False),
-        widget=forms.CheckboxSelectMultiple,
-        label="Выберите технологии для одобрения"
-    )

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактирование созданного инструмента - {{ tech.name }}{% endblock title %}
+
+{% block content %}
+    <p>Учтите, что при редактировании подтверждённого варианта, его статус исчезнет!!!</p>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Отредачить</button>
+    </form>
+{% endblock content %}

@@ -40,7 +40,7 @@ def filter_vacancies_by_similarity(
         keywords = extract_keywords_from_text(" ".join(title*2 + duties + reqs))
         vacancies_texts_keywords.append(keywords)
 
-    vectorizer = TfidfVectorizer(token_pattern=r'(?u)\b\w[\w\+#]*\b')
+    vectorizer = TfidfVectorizer(token_pattern=r'(?u)\b\w[\w\+#/\.]*\b')
 
     tfidf_matrix = vectorizer.fit_transform(
         [applicant_text_skills_with_his_search_history] + vacancies_texts_keywords

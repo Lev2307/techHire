@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Пользователь - {{ user.username }}{% endblock title %}
+
+{% block content %}
+    <main>
+        <form action="{% url 'accounts:logout' %}" method="post">
+            {% csrf_token %}
+            <button type="submit">Выйти из ака</button>
+        </form>
+        <div>
+            <h1>Здарова, {{ user.first_name }}</h1>
+            <a href="{% url 'accounts:edit-profile' %}">Изменить профиль</a>
+            <a href="{% url 'accounts:add-own-technology' %}">Добавить собственный инструмент</a>
+        </div>
+        <div>
+            {% if applicant_created_tecchnologies_options  %}
+            <p>Ваши созданные варианты инструментов 
+                <small>(учтите, что ваш вариант может быть удалён, исходя из решения модерации, но до этого он может полноценно функционировать и использоваться для формирования рекомендаций)</small>
+            </p>
+            <div>
+                {% for tech in applicant_created_tecchnologies_options %}
+                    <div>
+                        <span><b>{{ tech.name }}</b> {% if tech.is_approved %} (подтверждён ✔️) {% else %} (на рассмотрении ⚙️) {% endif %}</span>
+                        <a href="{% url 'accounts:edit-own-technology' pk=tech.pk %}">Изменить</a>
+                        <form style="display: inline-block;" action="{% url 'accounts:delete-own-technology' pk=tech.pk %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit">Удалить</button>
+                        </form>
+                    </div>
+                {% endfor %}
+            </div>
+            {% else %}
+                <p>Вы пока не создали ни одного своего варианта инструмента</p>
+            {% endif %}
+        </div>
+    </main>
+{% endblock content %}

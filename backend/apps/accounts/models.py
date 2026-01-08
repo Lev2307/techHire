@@ -18,23 +18,29 @@ EXPERIENCE_CHOICES = [
 ]
 
 class Specialization(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField('Название', max_length=60)
+    created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
         verbose_name = 'Специализация'
         verbose_name_plural = 'Специализации'
+        ordering = ['name']
 
     def __str__(self):
         return self.name
 
 class Technology(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField('Название', max_length=60)
     creator = models.ForeignKey('Applicant', on_delete=models.CASCADE, null=True, blank=True)
     is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = 'Инструмент'
         verbose_name_plural = 'Инструменты'
+        ordering = ['name']
 
     def __str__(self):
         return self.name

@@ -17,7 +17,7 @@ ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS = [
     'PHP', 'HTML', 'XML', 'CSS', 'SASS', 'Tailwind', 'Bootstrap', 'React', 'Vue', 'Angular', 'Git', 'Gitlab', 'Docker', 'Kubernetes', 
     'MySQL', 'PostgreSQL', 'SQLite', 'MongoDB', 'Redis', 'Elasticsearch', 'ClearML', 'MLFlow', 'NLTK', 'TensorFlow', 'Scikit-learn', 
     'NLP', 'CV', 'LLM', '1С', 'GraphQL', 'REST', 'RabbitMQ', 'Kafka', 'Apache', 'Linux', 'Excel',
-    'ML', 'AI', 'ChatGPT', 'Grok', 'Gemini', 'Senior', 'Middle', 'Junior',
+    'ML', 'AI', 'ChatGPT', 'Grok', 'Gemini', 'Senior', 'Middle', 'Junior', 'CI/CD',
     'Django', 'Spark', 'Flask', 'FastApi', 'NestJS', 'Express', 'Laravel', 'Spring', 'Figma', 'AdobeXd'
 ]
 ALL_KEYWORDS_LIST = SPECIALIZATIONS_LIST + ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS
@@ -165,16 +165,18 @@ def extract_duties_requirements_working_conditions_by_keywords(text):
 
 def extract_keywords_from_text(text: str) -> str:
     if not text:
-            return ""
-        
-    text_lower = text.lower()
+        return ""
+
+    text_lower = f" {text.lower()} "
     found_keywords = []
-    keywords_lower = [i.lower() for i in ALL_KEYWORDS_LIST]
-    
-    for keyword in keywords_lower:
-        matches = re.findall(r'\b' + re.escape(keyword) + r'\b', text_lower)
-        if matches:
-            found_keywords.extend(matches)
+    keywords_sorted = sorted(ALL_KEYWORDS_LIST, key=len, reverse=True)
+    for keyword in keywords_sorted:
+        kw_lower = keyword.lower()
+        pattern_escaped = re.escape(kw_lower)
+        pattern = rf'(?<=[^a-z0-9]){pattern_escaped}(?=[^a-z0-9])'
+        if re.search(pattern, text_lower):
+            found_keywords.append(kw_lower)
+            
     return " ".join(found_keywords)
 
 def get_payment_from_hh_vacancy(salary_data: dict | None) -> list:
@@ -197,10 +199,10 @@ def get_applicant_criterias_for_filtering_vacancies(user: Applicant) -> dict:
     '''Возвращает информацию о пользователе для дальнейшей генерации персональных вакансий'''
     applicant_technologies = []
     for tech in user.technologies.all():
-        tech_names = tech.name.split('/')
-        tech_str_without_brackets = re.sub(r'\s*\(.*?\)|и т\.д.?', "", " ".join(tech_names))
-        applicant_technologies.append(tech_str_without_brackets)
-
+        if tech.name != "CI/CD":
+            applicant_technologies.append(" ".join(tech.name.split('/')))
+        else:
+            applicant_technologies.append("CI/CD")
     applicant_data = {
         'city': user.get_city_display(), # city in ru format
         'experience': user.get_experience_display(), # experience in ru format

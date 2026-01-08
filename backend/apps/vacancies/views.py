@@ -141,3 +141,4 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
 
     def handle_vacancy_not_found(self):
         return HttpResponseRedirect(reverse("vacancies:recom_vacancies"))
+    
