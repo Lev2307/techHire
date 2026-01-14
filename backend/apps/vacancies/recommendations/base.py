@@ -20,6 +20,7 @@ def filter_vacancies_by_similarity(
     applicant_data: dict, 
     applicant_favourites_vacancies_data: dict, 
     applicant_search_history: dict,
+    for_auto_updating_vacancies: bool,
     threshold=0.6
     ) -> list:
     '''
@@ -58,7 +59,6 @@ def filter_vacancies_by_similarity(
             tech_similarity=similarities[0][idx]
         )
         total_similarity = similarity_with_applicant_profile_ratio
-        # print(total_similarity, vacancy["title"], similarities[0][idx])
         if len(applicant_favourites_vacancies_data.keys()) > 0:
             similarity_with_favourites_ratio = calculate_total_similarity_between_vacancy_and_applicant_favourites(
                 vacancy=vacancy,
@@ -71,29 +71,36 @@ def filter_vacancies_by_similarity(
         else:
             if total_similarity >= threshold-0.2:
                 filtered_vacancies.append((vacancy, similarities[0][idx], total_similarity))
+
     filtered_vacancies.sort(key=lambda x: (x[2], x[1]), reverse=True)
-    return [i[0] for i in filtered_vacancies][:12] # get top 12 recommended
+    top_12_vacancies = [i[0] for i in filtered_vacancies][:12]
+    top_12_vacancies_external_ids = [i["external_id"] for i in top_12_vacancies]
+    if for_auto_updating_vacancies:
+        return [top_12_vacancies, top_12_vacancies_external_ids] # в случае, если выполняется таска, то возвращается список с самими вакансиями и их external_ids
+    else:       
+        cache.set(f"LATEST_LIST_RECOMMENDATIONS_EXTERNAL_IDS_FOR_USER_{applicant_data['applicant_username']}", top_12_vacancies_external_ids, timeout=None) # сохраняю в кэш список top_12_vacancies_external_ids, только при пользовательском взаимодействии с приложением
+        return top_12_vacancies
 
-
-def get_recommended_vacancies_by_content(user: Applicant) -> list:
+def get_recommended_vacancies_by_content(user: Applicant, for_auto_updating_vacancies=False) -> list:
     '''Генерирует вакансии на основе алгоритма контентной фильтрации'''
     applicant_data = get_applicant_criterias_for_filtering_vacancies(user)
     applicant_fav_vacancies_data = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=user))
     applicant_search_histories = get_applicant_search_history_info_for_filtering_vacancies(SearchHistory.objects.filter(user=user))
-    all_latest_it_vacancies = [] if not cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}") else cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}") # get vacancies for user city from cache
-    all_latest_it_vacancies = [d for d in all_latest_it_vacancies if d]
+    all_latest_it_vacancies = cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}", [])# получение вакансий для города, который выбрал пользователь
+    all_latest_it_vacancies = [d for d in all_latest_it_vacancies if d] # отброс всех пустых вакансий (т.е [])
     for vac in all_latest_it_vacancies:
-
         if vac["duties"] == NOT_FOUND_DUTIES and vac["requirements"] == NOT_FOUND_REQS:
             all_latest_it_vacancies.remove(vac)
         if vac["is_added_to_favorites"] == True:
             all_latest_it_vacancies.remove(vac)
+
     if all_latest_it_vacancies:
         filtered_vacancies = filter_vacancies_by_similarity(
             all_latest_it_vacancies, 
             applicant_data, 
             applicant_fav_vacancies_data,
-            applicant_search_histories
+            applicant_search_histories, 
+            for_auto_updating_vacancies
         )
         return filtered_vacancies
     return []

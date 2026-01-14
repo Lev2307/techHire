@@ -204,8 +204,9 @@ def get_applicant_criterias_for_filtering_vacancies(user: Applicant) -> dict:
         else:
             applicant_technologies.append("CI/CD")
     applicant_data = {
-        'city': user.get_city_display(), # city in ru format
-        'experience': user.get_experience_display(), # experience in ru format
+        'applicant_username': user.username, # имя пользователя (уникальное)
+        'city': user.get_city_display(), # город в ру формате
+        'experience': user.get_experience_display(), # опыт работы в ру формате
         'experience_eng': user.experience,
         'preferred_work_format': [wf.name for wf in user.preferred_work_format.all()],
         'specializations': " ".join([spec.name for spec in user.specializations.all()]),

@@ -75,7 +75,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
         vac_api_id = self.kwargs['pk']
         vac_source = request.GET.get('parse_from', '')
         url_params = {
-            'query': urllib.parse.unquote_plus(request.GET.get('q')),
+            'query': urllib.parse.quote_plus(request.GET.get('q')),
             'payment_from': request.GET.get('pf')
         }
         applicant = Applicant.objects.get(username=self.request.user.username)
@@ -115,7 +115,7 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     def get_success_url(self):
         if self.request.GET.get('q') != None and self.request.GET.get('pf') != None:
             url_params = {
-                'query': urllib.parse.unquote_plus(self.request.GET.get('q')),
+                'query': urllib.parse.quote_plus(self.request.GET.get('q')),
                 'payment_from': self.request.GET.get('pf')
             }
             return reverse_lazy("vacancies:search_vacancies", query=url_params)

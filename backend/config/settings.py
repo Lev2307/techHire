@@ -132,8 +132,8 @@ CELERY_TIMEZONE = os.environ.get('TZ')
 RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS = 12
 
 CELERY_BEAT_SCHEDULE = {
-    "update_vacancies_for_all_cities": {
-        "task": "apps.vacancies.tasks.update_vacancies_for_all_cities",
+    "auto_updating_vacancies": {
+        "task": "apps.vacancies.tasks.auto_updating_vacancies",
         "schedule": crontab(minute='0', hour=f'*/{RECOMMENDED_VACANCIES_LIFETIME_IN_HOURS}')
     }
 }

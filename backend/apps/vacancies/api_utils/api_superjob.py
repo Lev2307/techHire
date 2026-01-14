@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import concurrent
 
 import requests
@@ -34,7 +34,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
     employer = superjob_vacancy_data["client"]
     experience =  [_ for _ in EXPERIENCE_CHOICES_SUPERJOB if superjob_vacancy_data["experience"]["title"] == _[1]][0]
     return {
-        'external_id': superjob_vacancy_data["id"],
+        'external_id': str(superjob_vacancy_data["id"]),
         'title': superjob_vacancy_data["profession"],
         'duties': parsed_options["duties"] if parsed_options["duties"] != [] else NOT_FOUND_DUTIES,
         'requirements': parsed_options["requirements"] if parsed_options["requirements"] != [] else NOT_FOUND_REQS,
@@ -110,7 +110,7 @@ def get_superjob_vacancy_data_from_api(external_id: str) -> dict:
     data = get_superjob_vacancy_from_cache(external_id, SUPERJOB_API_HEADERS)
     if data:
         parsed_text = extract_duties_requirements_working_conditions_by_keywords(data["candidat"])
-        valid_until = datetime.fromtimestamp(data["date_pub_to"])
+        valid_until = datetime.fromtimestamp(data["date_pub_to"]) + timedelta(days=1)
         ed = [i[1] for i in EDUCATIONS_SUPERJOB if i[0] == data["education"]["id"]][0]
 
         returned_data = parse_vacancy_superjob_data(data, parsed_text)

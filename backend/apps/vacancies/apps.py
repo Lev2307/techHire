@@ -6,7 +6,7 @@ class VacanciesConfig(AppConfig):
     name = 'apps.vacancies'
 
     def ready(self):
-        from .tasks import update_vacancies_for_all_cities
-        if not cache.get('update_vacancies_init'):
-            update_vacancies_for_all_cities.delay()
-            cache.set('update_vacancies_init', True, timeout=None)
+        from .tasks import auto_updating_vacancies
+        if not cache.get('auto_updating_vacancies_init'):
+            auto_updating_vacancies.delay()
+            cache.set('auto_updating_vacancies_init', True, timeout=None)
