@@ -13,6 +13,7 @@ from django.views import generic
 from config import settings
 from .forms import ApplicantForm, TechnologyForm
 from .models import Applicant, ApplicantLinkedTelegram, Technology
+
     
 class ProfileView(LoginRequiredMixin, generic.DetailView):
     model = Applicant
@@ -81,7 +82,6 @@ class EditOwnTechnologyFromApplicantView(LoginRequiredMixin, generic.UpdateView)
         self.object = form.save(commit=False)
         self.object.creator = self.request.user
         self.object.save()
-        self.request.user.technologies.add(self.object)
 
         return HttpResponseRedirect(self.get_success_url())
     
@@ -93,6 +93,36 @@ def delete_own_technology_from_applicant_view(request, pk):
             return HttpResponseRedirect(reverse("accounts:profile"))
         obj.delete()
         return HttpResponseRedirect(reverse("accounts:profile"))
+    
+class PendingTechnologyListView(PermissionRequiredMixin, generic.ListView):
+    model = Technology
+    template_name = 'admin/moderation_list.html'
+    permission_required = 'is_superuser'
+    context_object_name = 'technologies'
+    login_url = reverse_lazy("accounts:profile")
+
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return Technology.objects.filter(is_approved=False).order_by("-created_at")
+
+    def post(self, request, *args, **kwargs):
+        tech_id = request.POST.get('tech_id')
+        action = request.POST.get('action')
+        tech = get_object_or_404(Technology, id=tech_id)
+        creator = get_object_or_404(Applicant, username=tech.creator.username)
+
+        if action == 'approve':
+            tech.is_approved = True
+            tech.save() # статус у технологии - approved
+            if not creator.technologies.filter(name=tech.name).exists(): # автоматически присваивается к пользователю после модерации
+                creator.technologies.add(tech)
+                creator.save()
+        elif action == 'delete':
+            tech.delete()
+
+        return HttpResponseRedirect(reverse('accounts:pending_technologies'))
 
 class LoginView(generic.View):
     template_name = 'login.html'
@@ -170,36 +200,6 @@ def telegram_auth(request):
             return HttpResponseRedirect(reverse('accounts:login'))
     else:
         return HttpResponseRedirect(reverse('accounts:login'))
-
-class PendingTechnologyListView(PermissionRequiredMixin, generic.ListView):
-    model = Technology
-    template_name = 'admin/moderation_list.html'
-    permission_required = 'is_superuser'
-    context_object_name = 'technologies'
-    login_url = reverse_lazy("accounts:profile")
-
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-
-    def get_queryset(self):
-        return Technology.objects.filter(is_approved=False).order_by("-created_at")
-
-    def post(self, request, *args, **kwargs):
-        tech_id = request.POST.get('tech_id')
-        action = request.POST.get('action')
-        tech = get_object_or_404(Technology, id=tech_id)
-        creator = get_object_or_404(Applicant, username=tech.creator.username)
-
-        if action == 'approve':
-            tech.is_approved = True
-            tech.save() # статус у технологии - approved
-            if not creator.technologies.filter(name=tech.name).exists(): # автоматически присваивается к пользователю после модерации
-                creator.technologies.add(tech)
-                creator.save()
-        elif action == 'delete':
-            tech.delete()
-
-        return HttpResponseRedirect(reverse('accounts:pending_technologies'))
     
 # cloudflared tunnel run techhiretunnel
 # login from google unfo

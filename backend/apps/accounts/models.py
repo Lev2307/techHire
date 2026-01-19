@@ -55,7 +55,14 @@ class ApplicantLinkedTelegram(models.Model):
         return str(self.user_id)
 
 class Applicant(AbstractBaseUser, PermissionsMixin):
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    id = models.UUIDField(
+        primary_key=True, 
+        default=uuid.uuid4, 
+        editable=False,
+        error_messages={
+            'invalid': 'That is not a valid UUID format.'
+        }
+    )
     username = models.CharField(
         'Имя пользователя',
         max_length=32,

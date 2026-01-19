@@ -17,11 +17,18 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from rest_framework import routers
+
+from apps.accounts.views import ApplicantsViewSet
 from apps.vacancies.views import HomeView
+
+router = routers.DefaultRouter(trailing_slash=False)
+router.register(r'accounts', ApplicantsViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', HomeView.as_view(), name='homepage'),
     path('accounts/', include(('apps.accounts.urls', 'accounts'), namespace='accounts')),
-    path('vacancies/', include(('apps.vacancies.urls', 'vacancies'), namespace='vacancies'))
+    path('vacancies/', include(('apps.vacancies.urls', 'vacancies'), namespace='vacancies')),
+    path('api/', include((router.urls, 'api'), namespace='api'))
 ]

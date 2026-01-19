@@ -10,9 +10,8 @@ from .views import (
     AddOwnTechnologyToApplicantView, 
     EditProfileView, 
     EditOwnTechnologyFromApplicantView,
-    delete_own_technology_from_applicant_view
+    delete_own_technology_from_applicant_view,
 )
-
 
 urlpatterns = [
     path('sign-up', sign_up_view, name='sign-up'),
@@ -24,5 +23,5 @@ urlpatterns = [
     path('profile/add-own-technology/', AddOwnTechnologyToApplicantView.as_view(), name="add-own-technology"),
     path('profile/edit-own-technology/<uuid:pk>/', EditOwnTechnologyFromApplicantView.as_view(), name="edit-own-technology"),
     path("profile/delete-own-technology/<uuid:pk>/", delete_own_technology_from_applicant_view, name="delete-own-technology"),
-    path('admin/pending_technologies/', PendingTechnologyListView.as_view(), name="pending_technologies")
+    path('admin/pending_technologies/', PendingTechnologyListView.as_view(), name="pending_technologies"),
 ]
