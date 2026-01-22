@@ -2,13 +2,27 @@ services:
   backend:
     build: 
       context: ./backend
-      dockerfile: DockerFile
+      dockerfile: DockerFile.backend
     volumes:
       - ./backend/:/back
     env_file: 
       - ./backend/.env.backend
     ports:
       - "8000:8000"
+    depends_on:
+      - db
+      - redis
+  bot:
+    build:
+      context: ./bot
+      dockerfile: DockerFile.bot
+    container_name: techhire-bot
+    restart: always
+    volumes:
+      - ./bot/:/bot
+    env_file:
+      - ./bot/.env.bot
+      - ./backend/.env.backend # конфигурация бд для бота
     depends_on:
       - db
       - redis
@@ -32,7 +46,7 @@ services:
   celery:
     build: 
       context: ./backend
-      dockerfile: DockerFile
+      dockerfile: DockerFile.backend
     command: celery -A config worker -l info
     volumes:
       - ./backend/:/back
@@ -44,7 +58,7 @@ services:
   celery-beat:
     build: 
       context: ./backend
-      dockerfile: DockerFile
+      dockerfile: DockerFile.backend
     command: celery -A config beat -l info 
     volumes: 
       - ./backend/:/back

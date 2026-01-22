@@ -6,7 +6,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
+from config import settings
 from .serializers import ApplicantSerializer, TechnologySerializer
+from .permissions import IsInternalBot
 from ..models import Applicant, Technology
 
 class ApplicantsViewSet(viewsets.ModelViewSet):
@@ -14,9 +16,12 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicantSerializer
 
     def get_permissions(self):
-        # list, retrieve, pending_technologies, moderate_technology доступны только админам
-        if self.action in ['list', 'retrieve', 'pending_technologies_list', 'moderate_technology']:
+        if self.action in ['list', 'retrieve', 'pending_technologies_list', 'moderate_technology']: # permissions доступные только админам
             permission_classes = [IsAdminUser]
+        elif self.action in ['by_telegram']: # permissions для доступа боту
+            permission_classes = [IsInternalBot]
+        elif self.action in ['applicant_created_technologies_list']: # permission для авторизованных пользователей или для бота
+            permission_classes = [IsAuthenticated | IsInternalBot]
         else:
             permission_classes = [IsAuthenticated]
         return [permission() for permission in permission_classes]
@@ -106,3 +111,9 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         tech.save()
 
         return Response({"message": f"Технология {tech.name} была подтвержедна модерацией"}, status=status.HTTP_200_OK)
+    
+    @action(methods=['get'], url_path='by-telegram/(?P<tg_id>[^/.]+)', url_name="by_telegram", detail=False)
+    def by_telegram(self, request, tg_id=None):
+        applicant = get_object_or_404(Applicant, linked_telegram__user_id=tg_id)
+        serializer = self.get_serializer(applicant)
+        return Response(serializer.data)

@@ -17,15 +17,15 @@ EDUCATIONS_SUPERJOB = [
     (6, 'Student', 'Учащийся'),
 ]
 EXPERIENCE_CHOICES_SUPERJOB = [
-    (EXPERIENCE_CHOICES[0][0], 'Без опыта', EXPERIENCE_CHOICES[0][1]),
-    (EXPERIENCE_CHOICES[1][0], 'От 1 года', EXPERIENCE_CHOICES[1][1]),
-    (EXPERIENCE_CHOICES[2][0], 'От 3 лет', EXPERIENCE_CHOICES[2][1]),
-    (EXPERIENCE_CHOICES[3][0], 'От 6 лет', EXPERIENCE_CHOICES[3][1]),
+    (EXPERIENCE_CHOICES[0][0], 'Не имеет значения', EXPERIENCE_CHOICES[0][1]),
+    (EXPERIENCE_CHOICES[1][0], 'Без опыта', EXPERIENCE_CHOICES[1][1]),
+    (EXPERIENCE_CHOICES[2][0], 'От 1 года', EXPERIENCE_CHOICES[2][1]),
+    (EXPERIENCE_CHOICES[3][0], 'От 3 лет', EXPERIENCE_CHOICES[3][1]),
+    (EXPERIENCE_CHOICES[4][0], 'От 6 лет', EXPERIENCE_CHOICES[4][1]),
 ]
 
 def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dict) -> dict:
     """Преобразовывает данные вакансии из api Superjob в унифицированный формат."""
-
     work_format_values = []
     for _ in range(len(WORK_FORMAT_CHOICES)):
         if _ == superjob_vacancy_data["place_of_work"]["id"]:

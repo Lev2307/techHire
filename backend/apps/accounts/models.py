@@ -11,6 +11,7 @@ CITY_CHOICES = [
     ('Saint Petersburg', 'Санкт-Петербург')
 ]
 EXPERIENCE_CHOICES = [
+    ('Not specified', 'Не имеет значения'),
     ('No exp', 'Нет опыта'),
     ('Year', 'От 1 года до 3 лет'),
     ('Three years', 'От 3 до 6 лет'),
@@ -50,6 +51,7 @@ class ApplicantLinkedTelegram(models.Model):
     user_id = models.BigIntegerField()
     chat_id = models.BigIntegerField(null=True, blank=True)
     date_linked = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=False) # нажал ли соискатель кнопку /start в боте или нет
 
     def __str__(self):
         return str(self.user_id)
@@ -89,8 +91,8 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
     )
     experience = models.CharField(
         'Ваш опыт работы как IT-специалиста',
-        choices=EXPERIENCE_CHOICES,
-        default=EXPERIENCE_CHOICES[0][0]
+        choices=EXPERIENCE_CHOICES[1:],
+        default=EXPERIENCE_CHOICES[1][0]
     )
     specializations = models.ManyToManyField(Specialization)
     technologies = models.ManyToManyField(Technology)
@@ -98,6 +100,7 @@ class Applicant(AbstractBaseUser, PermissionsMixin):
     linked_telegram = models.OneToOneField(ApplicantLinkedTelegram, on_delete=models.CASCADE, null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_sub = models.BooleanField(default=False) # есть ли подписка у аппликанта (пока будет просто как флаг, потом мб сделаю платёжную систему для неё)
+    notifications_enabled = models.BooleanField(default=True) # включить/выключить оповещения
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
