@@ -113,7 +113,9 @@ KEYWORDS_END_OF_SECTIONS = (
 )
 
 
-def extract_duties_requirements_working_conditions_by_keywords(text):
+def extract_duties_requirements_working_conditions_by_keywords(text: str) -> dict:
+    if not text: 
+        text = ""
     text = text.replace('\u200b', '').replace('<mark>', '').replace('</mark>', '').replace('<strong>', '').replace('</strong>', '').replace('<em>', '').replace('</em>', '').replace('<span>', '').replace('</span>', '').replace('—', '').replace('_', '').replace('·', '').replace('●', '').replace('✓', '')
     text = emoji.replace_emoji(text, replace="")
     soup = BeautifulSoup(text, 'html.parser')

@@ -21,11 +21,11 @@ class TestAccounts(TestCase):
         self.first_name = 'Вася'
         self.email = 'a@b.com'
         self.specs = list(Specialization.objects.all().values_list("id", flat=True))
-        self.techs = list(Specialization.objects.all().values_list("id", flat=True))
+        self.techs = list(Technology.objects.all().values_list("id", flat=True))
         self.password = '123'
         self.applicant = Applicant.objects.create_user(username=self.username, password=self.password)
         self.applicant.specializations.add(*[self.specs[0], self.specs[1]])
-        self.applicant.specializations.add(*[self.specs[0], self.specs[1]])
+        self.applicant.techs.add(*[self.techs[0], self.techs[1]])
         self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
 
         self.own_tech = Technology.objects.create(

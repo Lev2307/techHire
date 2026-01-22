@@ -19,11 +19,11 @@ from django.urls import path, include
 
 from rest_framework import routers
 
-from apps.accounts.views import ApplicantsViewSet
+from apps.accounts.api.views import ApplicantsViewSet
 from apps.vacancies.views import HomeView
 
 router = routers.DefaultRouter(trailing_slash=False)
-router.register(r'accounts', ApplicantsViewSet)
+router.register(r'accounts', ApplicantsViewSet, basename="accounts")
 
 urlpatterns = [
     path('admin/', admin.site.urls),

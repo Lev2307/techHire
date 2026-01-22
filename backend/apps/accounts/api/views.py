@@ -10,7 +10,7 @@ from .serializers import ApplicantSerializer, TechnologySerializer
 from ..models import Applicant, Technology
 
 class ApplicantsViewSet(viewsets.ModelViewSet):
-    queryset = Applicant.objects.all()
+    queryset = Applicant.objects.prefetch_related('technologies').all()
     serializer_class = ApplicantSerializer
 
     def get_permissions(self):
@@ -32,7 +32,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get', 'patch', 'put'], url_path='me', url_name='me')
     def me(self, request):
-        applicant = get_object_or_404(Applicant, user=request.user)
+        applicant = get_object_or_404(Applicant, username=request.user.username)
         
         if request.method == 'GET':
             serializer = self.get_serializer(applicant) 
@@ -46,7 +46,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     @action(methods=['post'], url_path='add-technology', url_name='add_technology', detail=False)
     def add_own_technology(self, request, *args, **kwargs):
         applicant = request.user
-        serializer = TechnologySerializer(request.data)
+        serializer = TechnologySerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
             instance = serializer.save(creator=applicant)
             applicant.technologies.add(instance)
@@ -77,7 +77,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             return Response({"message": "Нельзя удалить одобренную технологию из общей базы"}, status=status.HTTP_400_BAD_REQUEST)
         
         tech.delete()
-        return Response({"message": "Technology was deleted successfully!"}, status=status.HTTP_204_NO_CONTENT)
+        return Response({"message": "Технология была успешна удалена!"}, status=status.HTTP_204_NO_CONTENT)
     
     @action(methods=["get"], url_path="applicant-technologies", url_name="applicant_created_technologies_list", detail=False)
     def applicant_created_technologies_list(self, request, *args, **kwargs):
@@ -87,21 +87,22 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     
     @action(methods=["get"], url_path="pending-technologies", url_name="pending_technologies_list", detail=False)
     def pending_technologies_list(self, request, *args, **kwargs):
-        techs_list_non_approved = Technology.objects.filter(is_approved=False)
-        serializer = TechnologySerializer(techs_list_non_approved)
+        techs_list_non_approved = Technology.objects.filter(is_approved=False).order_by("-created_at")
+        serializer = TechnologySerializer(techs_list_non_approved, many=True)
         return Response(serializer.data)
     
-    @action(methods=["post", "delete"], url_path="moderate-technology", url_name="moderate_technology", detail=True)
+    @action(methods=["patch", "delete"], url_path="moderate-technology", url_name="moderate_technology", detail=True)
     def moderate_technology(self, request, pk=None):
         tech = get_object_or_404(Technology, pk=pk)
         creator = tech.creator
+        if tech.is_approved:
+            return Response({"message": "Технология уже прошла модерацию!!!"}, status=status.HTTP_403_FORBIDDEN)
+        
         if request.method == "DELETE":
             name = tech.name
             tech.delete()
             return Response({"message": f"Технология {name} была отклонена модерацией"}, status=status.HTTP_204_NO_CONTENT)
         tech.is_approved = True
         tech.save()
-        if creator and not creator.technologies.filter(name=tech.name).exists(): # автоматически присваивается к пользователю после модерации
-            creator.technologies.add(tech)
 
         return Response({"message": f"Технология {tech.name} была подтвержедна модерацией"}, status=status.HTTP_200_OK)
