@@ -1,4 +1,10 @@
+import time
+
+import hmac
+import hashlib
+
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import login
 
 from rest_framework import status
 from rest_framework import viewsets
@@ -6,9 +12,10 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
+from config import settings
 from .serializers import ApplicantSerializer, TechnologySerializer
 from .permissions import IsInternalBot
-from ..models import Applicant, Technology
+from ..models import Applicant, ApplicantLinkedTelegram, Technology
 from ..tasks import send_telegram_message
 
 class ApplicantsViewSet(viewsets.ModelViewSet):
@@ -16,7 +23,9 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     serializer_class = ApplicantSerializer
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve', 'pending_technologies_list', 'moderate_technology']: # permissions доступные только админам
+        if self.action in ['create', 'telegram_auth']: # аутентификация
+            permission_classes = []
+        elif self.action in ['list', 'retrieve', 'pending_technologies_list', 'moderate_technology']: # permissions доступные только админам
             permission_classes = [IsAdminUser]
         elif self.action in ['by_telegram']: # permissions для доступа боту
             permission_classes = [IsInternalBot]
@@ -34,6 +43,66 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         applicant = get_object_or_404(self.queryset, pk=pk)
         serializer = self.get_serializer(applicant)
         return Response(serializer.data)
+    
+    def perform_create(self, serializer):
+        instance = serializer.save()
+        login(self.request, instance)
+        del self.request.session['tg_user_data'] # удаление ключа с тгшной инфой из сессии
+
+    def create(self, request, *args, **kwargs):
+        user_data = self.request.session.get('tg_user_data')
+        if not user_data:
+            return Response({"message": "Данные телеграм не найдены в сессии"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if time.time() - int(user_data.get('auth_date', 0)) > 300:
+            return Response({"message": "Время сессии истекло"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user_data.get('hash') != user_data.get('secret'):
+            return Response({"message": "Ошибка безопасности: хеш не совпал"}, status=status.HTTP_400_BAD_REQUEST) 
+        
+        serializer = self.get_serializer(
+            data=request.data,
+            context={'tg_user_data': user_data}
+        )
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+
+        return Response({'message': 'Вы успешно вошли в систему!', "user": serializer.data["username"]}, status=status.HTTP_201_CREATED)
+    
+    @action(methods=["GET"], url_path="telegram-auth", url_name="telegram_auth", detail=False)
+    def telegram_auth(self, request, *args, **kwargs):
+        data = request.GET
+        if time.time() - int(data.get('auth_date', 0)) > 300:
+            return Response({"message": "Время сессии истекло"}, status=status.HTTP_401_UNAUTHORIZED)
+
+        hash = data.get('hash')
+        secret_key = hashlib.sha256(settings.TELEGRAM_BOT_TOKEN.encode()).digest()
+        check_string = '\n'.join([f"{k}={v}" for k, v in sorted(data.items()) if k != 'hash'])
+        secret = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
+        if secret != hash:
+            return Response({"message": "Ошибка безопасности: хеш не совпал"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user_data = {
+            'id': data.get('id'),
+            'username': data.get('username'),
+            'first_name': data.get('first_name'),
+            'auth_date': data.get('auth_date'),
+            'secret': secret,
+            'hash': hash
+        }
+        request.session['tg_user_data'] = user_data
+        telega = ApplicantLinkedTelegram.objects.filter(user_id=user_data["id"]).first()
+        if telega:
+            user = get_object_or_404(Applicant, linked_telegram=telega)
+            login(request, user)
+            del request.session['tg_user_data']
+            return Response({"message": "Успешный вход в систему", "user": user.username}, status=status.HTTP_200_OK)
+        
+        return Response({
+            "status": "register",
+            "message": "Аккаунт не найден, пожалуйста, завершите регистрацию",
+            "tg_user_data": user_data
+        }, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['get', 'patch', 'put'], url_path='me', url_name='me')
     def me(self, request):
