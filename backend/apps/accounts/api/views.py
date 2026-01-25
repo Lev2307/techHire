@@ -6,10 +6,10 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-from config import settings
 from .serializers import ApplicantSerializer, TechnologySerializer
 from .permissions import IsInternalBot
 from ..models import Applicant, Technology
+from ..tasks import send_telegram_message
 
 class ApplicantsViewSet(viewsets.ModelViewSet):
     queryset = Applicant.objects.prefetch_related('technologies').all()
@@ -58,9 +58,9 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(methods=["put", "patch"], url_path='edit-technology', url_name='edit_technology', detail=True)
-    def edit_own_technology(self, request, pk=None):
-        technology = get_object_or_404(Technology, pk=pk)
+    @action(methods=["put", "patch"], url_path='edit-technology/(?P<tech_id>[^/.]+)', url_name='edit_technology', detail=True)
+    def edit_own_technology(self, request, pk=None, tech_id=None): # pk - для Пользователя, tech_id - для id технологии
+        technology = get_object_or_404(Technology, pk=tech_id)
         applicant = request.user
         if technology.creator != applicant:
             return Response({"message": "Доступ к технологии может получить только её владелец."}, status=status.HTTP_403_FORBIDDEN)
@@ -71,9 +71,9 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.data, status=status.HTTP_400_BAD_REQUEST)
     
-    @action(methods=["delete"], url_path='delete-technology', url_name='delete_technology', detail=True)
-    def delete_own_technology(self, request, pk=None):
-        tech = get_object_or_404(Technology, pk=pk)
+    @action(methods=["delete"], url_path='delete-technology/(?P<tech_id>[^/.]+)', url_name='delete_technology', detail=True)
+    def delete_own_technology(self, request, pk=None, tech_id=None):
+        tech = get_object_or_404(Technology, pk=tech_id)
         applicant = request.user
         if tech.creator != applicant:
             return Response({"message": "Доступ к технологии может получить только её владелец."}, status=status.HTTP_403_FORBIDDEN)
@@ -84,7 +84,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         tech.delete()
         return Response({"message": "Технология была успешна удалена!"}, status=status.HTTP_204_NO_CONTENT)
     
-    @action(methods=["get"], url_path="applicant-technologies", url_name="applicant_created_technologies_list", detail=False)
+    @action(methods=["get"], url_path="applicant-technologies", url_name="applicant_created_technologies_list", detail=True)
     def applicant_created_technologies_list(self, request, *args, **kwargs):
         applicant_created_techs_list = Technology.objects.filter(creator=request.user).order_by("-created_at")
         serializer = TechnologySerializer(applicant_created_techs_list, many=True)
@@ -96,21 +96,26 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         serializer = TechnologySerializer(techs_list_non_approved, many=True)
         return Response(serializer.data)
     
-    @action(methods=["patch", "delete"], url_path="moderate-technology", url_name="moderate_technology", detail=True)
-    def moderate_technology(self, request, pk=None):
-        tech = get_object_or_404(Technology, pk=pk)
-        creator = tech.creator
+    @action(methods=["patch", "delete"], url_path="moderate-technology/(?P<tech_id>[^/.]+)", url_name="moderate_technology", detail=False)
+    def moderate_technology(self, request, tech_id=None):
+        tech = get_object_or_404(Technology, pk=tech_id)
+        name, creator = tech.name, tech.creator
         if tech.is_approved:
             return Response({"message": "Технология уже прошла модерацию!!!"}, status=status.HTTP_403_FORBIDDEN)
         
         if request.method == "DELETE":
-            name = tech.name
             tech.delete()
-            return Response({"message": f"Технология {name} была отклонена модерацией"}, status=status.HTTP_204_NO_CONTENT)
+            if creator.notifications_enabled:
+                if creator.linked_telegram and creator.linked_telegram.is_active: # проверка если логинился через тг и привязан ли тг к боту
+                    send_telegram_message.delay(f"Ваш вариант технологии - {name} был отклонен модерацией ⛔", creator.id)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        
         tech.is_approved = True
         tech.save()
-
-        return Response({"message": f"Технология {tech.name} была подтвержедна модерацией"}, status=status.HTTP_200_OK)
+        if creator.notifications_enabled:
+            if creator.linked_telegram and creator.linked_telegram.is_active:
+                send_telegram_message.delay(f"Ваш вариант технологии - {name} был подтвержден модерацией ✅", creator.id)
+        return Response({"message": f"Технология {tech.name} была подтверждена модерацией"}, status=status.HTTP_200_OK)
     
     @action(methods=['get'], url_path='by-telegram/(?P<tg_id>[^/.]+)', url_name="by_telegram", detail=False)
     def by_telegram(self, request, tg_id=None):

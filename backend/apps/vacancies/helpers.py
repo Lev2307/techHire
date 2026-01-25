@@ -1,11 +1,12 @@
 from datetime import date
 import re
 
+from django.db.models.query import QuerySet
+
+from babel.dates import format_datetime
 from bs4 import BeautifulSoup
 import emoji
 from currency_converter import CurrencyConverter
-
-from django.db.models.query import QuerySet
 
 from config.settings import SPECIALIZATIONS_LIST
 from apps.accounts.models import Applicant
@@ -274,3 +275,28 @@ def create_vacancy_model_and_firm_model_instances(model: Vacancy, user: Applican
         firm=firm
     )
     vac.work_format.add(*vacancy_data["work_formats"])
+
+def prepare_vacancy_for_telegram_message(vacancy: dict) -> str:
+    '''Излечение нужных данных из вакансии, объединение их в 1 текст для телеграм сообщения'''
+    duties = "\n".join(vacancy.get("duties")[:2])
+    requirements = "\n".join(vacancy.get("requirements")[:3])
+    working_condititons = "\n".join(vacancy.get("duties")[:4])
+    work_formats = ", ".join(vacancy.get("work_formats"))
+    payment = vacancy.get('payment')
+    payment_text, payment_from, payment_to, curr = "", payment.get("payment_from"), payment.get("payment_to"), payment.get("currency")
+
+    if payment.get('by_agreement'):
+        payment_text = 'Уровень дохода не указан'
+    elif payment_to == 0:
+        payment_text = f'от {payment_from}{curr} за месяц'
+    elif payment_from == 0:
+        payment_text = f'до {payment_to}{curr} за месяц'
+    elif payment_from == payment_to:
+        payment_text = f'{payment_to}{curr} за месяц'
+    else:
+        payment_text = f'{payment_from}-{payment_to}{curr}'
+    dt = format_datetime(vacancy.get("date_published"), locale='ru')
+
+    result = f'Возможно эта вакансия будет вам интересна 📜' + f'\n{vacancy.get("title")}' + f'\nЗп: {payment_text}' + f'\nЗадачи:\n{duties}'+ f'\nТребования:\n{requirements}' + f'\nУсловия:\n{working_condititons}' + f'\nОпыт работы: {vacancy.get("experience_ru")}' + f'\nФормат(-ы): {work_formats}'
+    result += f'\nБыла опубликована в: {dt}'
+    return result

@@ -158,7 +158,6 @@ SPECIALIZATIONS_LIST = [
     'Разработчик игр',
 ]
 
-
 TECHNOLOGIES_LIST = [
     'Python', 'JavaScript', 'TypeScript', 'Java', 'C#', 'C++', 'Go', 'Rust', 'PHP', 'Swift', 'Kotlin', # ЯП
     'React', 'Vue', 'Angular', 'Next.js', 'HTML/CSS', 'Tailwind/SASS', # front
@@ -175,6 +174,8 @@ HH_API_CLIENT_ID = os.environ.get('HH_API_CLIENT_ID')
 HH_API_CLIENT_SECRET = os.environ.get('HH_API_CLIENT_SECRET')
 HH_API_ACCESS_TOKEN = os.environ.get("HH_API_ACCESS_TOKEN")
 
+PROXY_URL = os.environ.get("PROXY_URL")
+TELEGRAM_ID_FOR_TESTS = os.environ.get("TELEGRAM_ID_FOR_TESTS")
 
 # 1. пофиксить или же выяснить работу celery_beat_schedule после обновления кода ✅
 # 2. если всё устроит в рекомендациях (подчернуто) ✅

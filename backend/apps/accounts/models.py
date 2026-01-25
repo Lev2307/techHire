@@ -54,7 +54,7 @@ class ApplicantLinkedTelegram(models.Model):
     is_active = models.BooleanField(default=False) # нажал ли соискатель кнопку /start в боте или нет
 
     def __str__(self):
-        return str(self.user_id)
+        return str(self.id)
 
 class Applicant(AbstractBaseUser, PermissionsMixin):
     id = models.UUIDField(

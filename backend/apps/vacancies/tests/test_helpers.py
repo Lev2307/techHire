@@ -5,8 +5,8 @@ from django.test import TestCase
 from django.utils import timezone
 
 from apps.accounts.models import Applicant, Specialization, Technology
-from ..api_utils.api_hh import get_hh_vacancy_from_cache
-from ..api_utils.constants import HH_API_HEADERS, NOT_FOUND_WORK_COND
+from ..api_utils.api_hh import get_hh_vacancy_data_from_api, get_hh_vacancy_from_cache, get_vacancies_from_headhunter_source
+from ..api_utils.constants import HH_API_HEADERS
 from ..models import Vacancy, WorkFormat, SearchHistory
 from ..helpers import (
     get_payment_from_hh_vacancy, 
@@ -15,11 +15,11 @@ from ..helpers import (
     convert_vacancy_payment_to_ru_currency,
     get_applicant_criterias_for_filtering_vacancies,
     get_applicant_search_history_info_for_filtering_vacancies,
-    get_applicant_favourite_vacancies_info_for_filtering_vacancies
+    get_applicant_favourite_vacancies_info_for_filtering_vacancies, 
+    prepare_vacancy_for_telegram_message
 )
 
 class VacanciesHelpersTests(TestCase):
-
     @classmethod
     def setUpTestData(cls):
         call_command("create_init_models_data")
@@ -31,7 +31,6 @@ class VacanciesHelpersTests(TestCase):
         self.password = '123'
         self.specs_list = list(Specialization.objects.all().values_list("id", flat=True))
         self.techs_list = list(Technology.objects.all().values_list("id", flat=True))
-        self.wf = WorkFormat.objects.create(name='Очная', name_eng='ON_SITE')
         self.applicant = Applicant.objects.create_user(
             username=self.username,
             password=self.password,
@@ -39,29 +38,33 @@ class VacanciesHelpersTests(TestCase):
             experience='No exp',
         )
         self.applicant.specializations.add(*[self.specs_list[3], self.specs_list[5], self.specs_list[0]])
-        self.applicant.technologies.add(*[self.techs_list[0], self.techs_list[2], self.techs_list[4], self.techs_list[5], self.techs_list[32]])
-        self.applicant.preferred_work_format.add(*[self.wf])
+        self.applicant.technologies.add(*[self.techs_list[0], self.techs_list[2], self.techs_list[4], self.techs_list[6], self.techs_list[32]])
+        self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
 
         self.search_h1 = SearchHistory.objects.create(user=self.applicant, search_query='Python')
         self.search_h2 = SearchHistory.objects.create(user=self.applicant, search_query='Rust')
 
+        self.vacancy_gath_from_api = get_vacancies_from_headhunter_source(query='Flutter Backend', applicant_city_ru_format='Москва', salary_from=0, pages_count=1, are_for_recommendations=False)[1]
+        self.vacancy_info = get_hh_vacancy_data_from_api(self.vacancy_gath_from_api.get("external_id"))
+
         self.vacancy = Vacancy.objects.create(
             user=self.applicant,
-            external_id=51320730,
-            title='Разработчик DWH (Oracle)',
-            duties='Разработка и проектирование архитектуры DWH;Оптимизация процессов загрузки и трансформации;Участие в задачах анализа систем источников', 
-            requirements='Опыт в качестве разработчика баз данных от 3 лет;Умение читать план и оптимизировать SQL запросы;Опыт работы с Oracle Database;Знание Python;Базовое умение работать с git.', 
-            working_conditions=NOT_FOUND_WORK_COND,
-            payment_from=10_000, 
-            payment_to=100_000, 
-            currency='RUR',
-            experience='От 3 лет', 
-            date_published=timezone.now() + timedelta(days=-7), 
-            valid_until=timezone.now() + timedelta(days=30),
-            initial_source='HH', 
+            initial_source=self.vacancy_info["initial_source"],
+            external_id=self.vacancy_info["external_id"],
+            title=self.vacancy_info["title"],
+            duties=self.vacancy_info["duties"],
+            requirements=self.vacancy_info["requirements"],
+            working_conditions=self.vacancy_info["working_conditions"],
+            payment_from=self.vacancy_info["payment"]["payment_from"],
+            payment_to=self.vacancy_info["payment"]["payment_to"],
+            currency=self.vacancy_info["payment"]["currency"],
+            experience=self.vacancy_info["experience"],
+            education=self.vacancy_info["education"],
+            date_published=self.vacancy_info["date_published"],
+            valid_until=self.vacancy_info["valid_until"],
+            original_link=self.vacancy_info["original_link"],
         )
-        self.vacancy.work_format.add(*[self.wf])
-
+        self.vacancy.work_format.add(*self.vacancy_info["work_formats"])
     
     def test_get_payment_from_hh_vacancy(self):
         '''Проверка корректного формата данных о зп вакансии из api HH'''
@@ -142,7 +145,7 @@ class VacanciesHelpersTests(TestCase):
         self.assertEqual(applicant_data['city'], 'Москва')
         self.assertEqual(applicant_data['experience'], 'Нет опыта')
         self.assertEqual(applicant_data['specializations'], " ".join([specs[0], specs[3], specs[5]]))
-        self.assertEqual(applicant_data['technologies'], " ".join([techs[0], techs[2], techs[4], techs[5], techs[32]]))
+        self.assertEqual(applicant_data['technologies'], " ".join([techs[0], techs[2], techs[4], techs[6], techs[32]]))
 
     def test_getting_applicant_search_history_info_for_filtering_vacancies(self):
         '''Проверка получения информации пользователя о его истории поиска'''
@@ -159,7 +162,11 @@ class VacanciesHelpersTests(TestCase):
         self.assertEqual(data[self.vacancy.id]["title"], self.vacancy.title)
         self.assertEqual(data[self.vacancy.id]["payment_from"], self.vacancy.payment_from)
         self.assertEqual(data[self.vacancy.id]["payment_to"], self.vacancy.payment_to)
-        self.assertEqual(data[self.vacancy.id]["experience"], 'От 3 лет')
-        self.assertEqual(data[self.vacancy.id]["work_format"], ['Очная'])
+        self.assertEqual(data[self.vacancy.id]["experience"], 'От 3 до 6 лет')
 
-
+    def test_prepare_vacancy_for_telegram_message(self):
+        '''Проверка корректного вывода текста для определённой вакансии'''
+        vac = self.vacancy_gath_from_api
+        vac["work_formats"] = [wf.name for wf in vac["work_formats"]]
+        result_text = prepare_vacancy_for_telegram_message(vac)
+        print(result_text)

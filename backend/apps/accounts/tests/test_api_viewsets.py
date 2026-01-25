@@ -1,13 +1,13 @@
 from django.core.management import call_command
 from django.urls import reverse
 
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, override_settings
 
+from config.settings import TELEGRAM_ID_FOR_TESTS
 from apps.vacancies.models import WorkFormat
-from ..models import Applicant, Technology, Specialization
+from ..models import Applicant, ApplicantLinkedTelegram, Technology, Specialization
 
 class ApplicantsViewSetTests(APITestCase):
-
     @classmethod
     def setUpTestData(cls):
         call_command("create_init_models_data")
@@ -20,19 +20,26 @@ class ApplicantsViewSetTests(APITestCase):
         self.specs = list(Specialization.objects.all().values_list("id", flat=True))
         self.techs = list(Technology.objects.all().values_list("id", flat=True))
         self.password = "user123"
+
+        self.tg = ApplicantLinkedTelegram.objects.create(
+            user_id=TELEGRAM_ID_FOR_TESTS,
+            chat_id=TELEGRAM_ID_FOR_TESTS,
+            is_active=True,
+        )
         self.applicant = Applicant.objects.create_user(
             username=self.username,
             first_name=self.first_name,
             email=self.email,
             city="Moscow",
             experience="Year",
+            linked_telegram=self.tg,
             password=self.password,
         )
         self.applicant.specializations.add(*[self.specs[0], self.specs[3]])
         self.applicant.technologies.add(*[self.techs[0], self.techs[3], self.techs[7], self.techs[12]])
         self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
 
-        self.tech = Technology.objects.create(name='Tech', creator=self.applicant)
+        self.tech = Technology.objects.create(name='Test', creator=self.applicant)
 
         self.admin_user = Applicant.objects.create_superuser(
             username="SUPERADMIN",
@@ -149,7 +156,7 @@ class ApplicantsViewSetTests(APITestCase):
         self.assertEqual(response.status_code, 200)
         # Ничего не изменилось, он просто скипает их
         self.assertEqual(response.json()["username"], self.applicant.username)
-        self.assertEqual(response.json()["linked_telegram"], self.applicant.linked_telegram)
+        self.assertEqual(response.json()["linked_telegram"], str(self.applicant.linked_telegram))
 
     def test_full_editing_applicant_profile_with_own_tech(self):
         '''Проверка полного редактирования профиля пользователя, при этом в поле технологий добавится собственный вариант (PUT)'''
@@ -244,7 +251,7 @@ class ApplicantsViewSetTests(APITestCase):
     
     def test_editing_technology_login_required(self):
         '''Проверка: только авторизованный пользователь может редактировать свою технологию (PUT/PATCH)'''
-        url = reverse("api:accounts-edit_technology", args=(self.tech.id, ))
+        url = reverse("api:accounts-edit_technology", args=(self.applicant.id, self.tech.id))
         data = {
             'name': 'Edit tech name'
         }
@@ -259,7 +266,7 @@ class ApplicantsViewSetTests(APITestCase):
 
     def test_editing_technology_only_owner_access(self):
         '''Проверка: только автор варианта технологии имеет доступ к её редакттированию (PUT/PATCH)'''
-        url = reverse("api:accounts-edit_technology", args=(self.tech.id, ))
+        url = reverse("api:accounts-edit_technology", args=(self.applicant.id, self.tech.id))
         data = {
             'name': 'Edit test'
         }
@@ -281,7 +288,7 @@ class ApplicantsViewSetTests(APITestCase):
         '''Проверка статуса is_approved при редактировании варианта технологии (если она до этого была одобрена) (PUT/PATCH)'''
         self.tech.is_approved = True
         self.tech.save()
-        url = reverse("api:accounts-edit_technology", args=(self.tech.id, ))
+        url = reverse("api:accounts-edit_technology", args=(self.applicant.id, self.tech.id))
         data = {
             'name': 'Edited name for test'
         }
@@ -293,7 +300,7 @@ class ApplicantsViewSetTests(APITestCase):
     
     def test_delete_technology_login_required(self):
         '''Проверка: только авторизованный пользователь может удалить свой вариант технологии (DELETE)'''
-        url = reverse("api:accounts-delete_technology", args=(self.tech.id, ))
+        url = reverse("api:accounts-delete_technology", args=(self.applicant.id, self.tech.id))
         
         anonymous_response = self.client.delete(url)
 
@@ -306,7 +313,7 @@ class ApplicantsViewSetTests(APITestCase):
 
     def test_delete_technology_only_owner_access(self):
         '''Проверка: только создатель варианта технологии имеет доступ к её удалению (DELETE)'''
-        url = reverse("api:accounts-delete_technology", args=(self.tech.id, ))
+        url = reverse("api:accounts-delete_technology", args=(self.applicant.id, self.tech.id))
 
         #other user
         self.client.force_login(self.admin_user)
@@ -326,7 +333,7 @@ class ApplicantsViewSetTests(APITestCase):
         '''Проверка: нельзя удалить подтверждённый вариант технологии, даже если являешься создаталем этого варианта (DELETE)'''
         self.tech.is_approved = True
         self.tech.save()
-        url = reverse("api:accounts-delete_technology", args=(self.tech.id, ))
+        url = reverse("api:accounts-delete_technology", args=(self.applicant.id, self.tech.id))
 
         self.client.force_login(self.applicant)
         response = self.client.delete(url)
@@ -336,7 +343,7 @@ class ApplicantsViewSetTests(APITestCase):
 
     def test_applicant_created_technologies_list_login_required(self):
         '''Проверка: список созданных пользователем вариантов технологий доступен только авторизованным пользователям (GET)'''
-        url = reverse('api:accounts-applicant_created_technologies_list')
+        url = reverse('api:accounts-applicant_created_technologies_list', args=(self.applicant.id, ))
         anonymous_response = self.client.get(url)
 
         self.client.force_login(self.applicant)
@@ -409,6 +416,11 @@ class ApplicantsViewSetTests(APITestCase):
         self.assertEqual(delete_response.status_code, 403)
         self.assertIn("Технология уже прошла модерацию", delete_response.json()["message"])
 
+    @override_settings(
+        CELERY_TASK_ALWAYS_EAGER=True,
+        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        BROKER_BACKEND='memory' # Use in-memory broker
+    )
     def test_denying_technology_while_moderation(self):
         '''Проверка удаления (отклонения) технологии при модерировании (DELETE)'''
         url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
@@ -418,7 +430,12 @@ class ApplicantsViewSetTests(APITestCase):
 
         self.assertEqual(delete_response.status_code, 204)
         self.assertEqual(Technology.objects.filter(creator=self.applicant).count(), 0)
-    
+
+    @override_settings(
+        CELERY_TASK_ALWAYS_EAGER=True,
+        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        BROKER_BACKEND='memory' # Use in-memory broker
+    )
     def test_approving_technology_while_moderation(self):
         '''Проверка подтверждения технологии при модерировании (PATCH)'''
         url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
@@ -427,5 +444,5 @@ class ApplicantsViewSetTests(APITestCase):
         patch_response = self.client.patch(url)
         
         self.assertEqual(patch_response.status_code, 200)
-        self.assertIn("была подтвержедна модерацией", patch_response.json()["message"])
+        self.assertIn("была подтверждена модерацией", patch_response.json()["message"])
         self.assertEqual(Technology.objects.filter(creator=self.applicant).first().is_approved, True)
