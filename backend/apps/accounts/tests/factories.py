@@ -16,5 +16,5 @@ def generate_applicant_additional_fields_for_sign_up(specs: list, techs: list):
         'city': "Moscow",
         'specializations': [specs[0], specs[4]],
         'technologies': [techs[3], techs[5], techs[7]],
-        'preferred_work_format': [WorkFormat.objects.get(name_eng='ON_SITE').id]
+        'preferred_work_formats': [WorkFormat.objects.get(name_eng='ON_SITE').id]
     }

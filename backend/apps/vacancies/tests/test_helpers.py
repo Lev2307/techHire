@@ -39,7 +39,7 @@ class VacanciesHelpersTests(TestCase):
         )
         self.applicant.specializations.add(*[self.specs_list[3], self.specs_list[5], self.specs_list[0]])
         self.applicant.technologies.add(*[self.techs_list[0], self.techs_list[2], self.techs_list[4], self.techs_list[6], self.techs_list[32]])
-        self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
+        self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
 
         self.search_h1 = SearchHistory.objects.create(user=self.applicant, search_query='Python')
         self.search_h2 = SearchHistory.objects.create(user=self.applicant, search_query='Rust')
@@ -64,7 +64,7 @@ class VacanciesHelpersTests(TestCase):
             valid_until=self.vacancy_info["valid_until"],
             original_link=self.vacancy_info["original_link"],
         )
-        self.vacancy.work_format.add(*self.vacancy_info["work_formats"])
+        self.vacancy.work_formats.set([WorkFormat.objects.get(name=wf) for wf in self.vacancy_info["work_formats"]])
     
     def test_get_payment_from_hh_vacancy(self):
         '''Проверка корректного формата данных о зп вакансии из api HH'''
@@ -167,6 +167,5 @@ class VacanciesHelpersTests(TestCase):
     def test_prepare_vacancy_for_telegram_message(self):
         '''Проверка корректного вывода текста для определённой вакансии'''
         vac = self.vacancy_gath_from_api
-        vac["work_formats"] = [wf.name for wf in vac["work_formats"]]
         result_text = prepare_vacancy_for_telegram_message(vac)
         print(result_text)

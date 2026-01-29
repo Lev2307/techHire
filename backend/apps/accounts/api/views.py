@@ -52,13 +52,13 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         user_data = self.request.session.get('tg_user_data')
         if not user_data:
-            return Response({"message": "Данные телеграм не найдены в сессии"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Данные телеграм не найдены в сессии."}, status=status.HTTP_400_BAD_REQUEST)
         
         if time.time() - int(user_data.get('auth_date', 0)) > 300:
-            return Response({"message": "Время сессии истекло"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Время сессии истекло."}, status=status.HTTP_400_BAD_REQUEST)
 
         if user_data.get('hash') != user_data.get('secret'):
-            return Response({"message": "Ошибка безопасности: хеш не совпал"}, status=status.HTTP_400_BAD_REQUEST) 
+            return Response({"detail": "Ошибка безопасности: хеш не совпал."}, status=status.HTTP_400_BAD_REQUEST) 
         
         serializer = self.get_serializer(
             data=request.data,
@@ -67,20 +67,20 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
 
-        return Response({'message': 'Вы успешно вошли в систему!', "user": serializer.data["username"]}, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Вы успешно вошли в систему.', "user": serializer.data["username"]}, status=status.HTTP_201_CREATED)
     
     @action(methods=["GET"], url_path="telegram-auth", url_name="telegram_auth", detail=False)
     def telegram_auth(self, request, *args, **kwargs):
         data = request.GET
         if time.time() - int(data.get('auth_date', 0)) > 300:
-            return Response({"message": "Время сессии истекло"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"detail": "Время сессии истекло"}, status=status.HTTP_401_UNAUTHORIZED)
 
         hash = data.get('hash')
         secret_key = hashlib.sha256(settings.TELEGRAM_BOT_TOKEN.encode()).digest()
         check_string = '\n'.join([f"{k}={v}" for k, v in sorted(data.items()) if k != 'hash'])
         secret = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
         if secret != hash:
-            return Response({"message": "Ошибка безопасности: хеш не совпал"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Ошибка безопасности: хеш не совпал"}, status=status.HTTP_400_BAD_REQUEST)
         
         user_data = {
             'id': data.get('id'),
@@ -96,11 +96,11 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             user = get_object_or_404(Applicant, linked_telegram=telega)
             login(request, user)
             del request.session['tg_user_data']
-            return Response({"message": "Успешный вход в систему", "user": user.username}, status=status.HTTP_200_OK)
+            return Response({"message": "Успешный вход в систему.", "user": user.username}, status=status.HTTP_200_OK)
         
         return Response({
             "status": "register",
-            "message": "Аккаунт не найден, пожалуйста, завершите регистрацию",
+            "message": "Аккаунт не найден, пожалуйста, завершите регистрацию.",
             "tg_user_data": user_data
         }, status=status.HTTP_200_OK)
 
@@ -132,7 +132,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         technology = get_object_or_404(Technology, pk=tech_id)
         applicant = request.user
         if technology.creator != applicant:
-            return Response({"message": "Доступ к технологии может получить только её владелец."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "Доступ к технологии может получить только её владелец."}, status=status.HTTP_403_FORBIDDEN)
         
         serializer = TechnologySerializer(technology, data=request.data, partial=True)
         if serializer.is_valid(raise_exception=True):
@@ -145,10 +145,10 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         tech = get_object_or_404(Technology, pk=tech_id)
         applicant = request.user
         if tech.creator != applicant:
-            return Response({"message": "Доступ к технологии может получить только её владелец."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "Доступ к технологии может получить только её владелец."}, status=status.HTTP_403_FORBIDDEN)
 
         if tech.is_approved:
-            return Response({"message": "Нельзя удалить одобренную технологию из общей базы"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Нельзя удалить одобренную технологию из общей базы."}, status=status.HTTP_400_BAD_REQUEST)
         
         tech.delete()
         return Response({"message": "Технология была успешна удалена!"}, status=status.HTTP_204_NO_CONTENT)
@@ -170,7 +170,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
         tech = get_object_or_404(Technology, pk=tech_id)
         name, creator = tech.name, tech.creator
         if tech.is_approved:
-            return Response({"message": "Технология уже прошла модерацию!!!"}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"detail": "Технология уже прошла модерацию."}, status=status.HTTP_403_FORBIDDEN)
         
         if request.method == "DELETE":
             tech.delete()

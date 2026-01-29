@@ -34,7 +34,7 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
             'currency': "RUR" if hh_vacancy_data["salary"] == None else hh_vacancy_data["salary"]["currency"],
             'by_agreement': True if payment_from == 0 and payment_to == 0 else False
         },
-        'work_formats': work_format_values,
+        'work_formats': [wf.name for wf in work_format_values],
         'experience': experience[0],
         'experience_ru': experience[1],
         'date_published': datetime.strptime(hh_vacancy_data["created_at"], "%Y-%m-%dT%H:%M:%S%z"),

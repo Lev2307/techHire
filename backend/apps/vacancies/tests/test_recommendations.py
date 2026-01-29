@@ -33,13 +33,13 @@ class RecomendationsTests(TestCase):
         )
         self.applicant.specializations.add(*[self.specs_list[0], self.specs_list[3]])
         self.applicant.technologies.add(*[self.techs_list[3], self.techs_list[7], self.techs_list[14], self.techs_list[32]])
-        self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
+        self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
 
         self.vacancies_gathered_from_api = get_vacancies_from_headhunter_source(query='Flutter Backend', applicant_city_ru_format=self.applicant_city_ru, salary_from=0, pages_count=1, are_for_recommendations=False)
         self.vacancy_gathered_from_api_1 = self.vacancies_gathered_from_api[0]
 
         # favourite vacancy
-        self.vacancy_gathered_from_api_for_favs = self.vacancies_gathered_from_api[3]
+        self.vacancy_gathered_from_api_for_favs = self.vacancies_gathered_from_api[2]
         self.vacancy_info = get_hh_vacancy_data_from_api(self.vacancy_gathered_from_api_for_favs["external_id"])
         self.vacancy = Vacancy.objects.create(
             user=self.applicant,
@@ -58,7 +58,7 @@ class RecomendationsTests(TestCase):
             valid_until=self.vacancy_info["valid_until"],
             original_link=self.vacancy_info["original_link"],
         )
-        self.vacancy.work_format.add(*self.vacancy_info["work_formats"])
+        self.vacancy.work_formats.set([WorkFormat.objects.get(name_eng="ON_SITE")])
 
 
     def test_calculate_similarity_between_applicant_profile_and_vacancy_by_work_format(self):
@@ -66,32 +66,32 @@ class RecomendationsTests(TestCase):
         applicant_data = get_applicant_criterias_for_filtering_vacancies(self.applicant)
         vac = self.vacancy_gathered_from_api_1
         # совпадение 1 формата работы
-        vac["work_formats"] = [WorkFormat.objects.get(name_eng="REMOTE")]                          
+        vac["work_formats"] = [WorkFormat.objects.get(name_eng="REMOTE").name]                          
         coefficient_with_workformat_match = calculate_total_similarity_between_appilicant_profile_and_vacancy(
             applicant_profile=applicant_data,
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(0.15 == coefficient_with_workformat_match)
+        self.assertEqual(0.15, coefficient_with_workformat_match)
 
         # частичное совпадение формата работы
-        vac["work_formats"] = [WorkFormat.objects.get(name_eng="REMOTE"), WorkFormat.objects.get(name_eng="HYBRID")]
+        vac["work_formats"] = [WorkFormat.objects.get(name_eng="REMOTE").name, WorkFormat.objects.get(name_eng="HYBRID").name]
         coefficient_with_workformat_partial_match = calculate_total_similarity_between_appilicant_profile_and_vacancy(
             applicant_profile=applicant_data,
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(0.105 == coefficient_with_workformat_partial_match)
+        self.assertEqual(0.105, coefficient_with_workformat_partial_match)
 
         # совпадение нескольких форматов
-        self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="HYBRID")]) # добавляем ещё 1 формат работы
+        self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="HYBRID")]) # добавляем ещё 1 формат работы
         applicant_data_new = get_applicant_criterias_for_filtering_vacancies(self.applicant)
         coefficient_with_workformat_whole_match = calculate_total_similarity_between_appilicant_profile_and_vacancy(
             applicant_profile=applicant_data_new,
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_workformat_whole_match == 0.22)
+        self.assertEqual(coefficient_with_workformat_whole_match, 0.22)
 
         # несовпадение
         vac["work_formats"] = [WorkFormat.objects.get(name_eng="Not specified")]
@@ -100,9 +100,9 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_workformat_no_match == 0.0)
+        self.assertEqual(coefficient_with_workformat_no_match, 0.0)
 
-        self.applicant.preferred_work_format.remove(*[WorkFormat.objects.get(name_eng="HYBRID")])
+        self.applicant.preferred_work_formats.remove(*[WorkFormat.objects.get(name_eng="HYBRID")])
 
 
     def test_calculate_similarity_between_applicant_profile_and_vacancy_by_experience(self):
@@ -117,7 +117,7 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_experience_NO_match == 0.0)
+        self.assertEqual(coefficient_with_experience_NO_match, 0.0)
 
         # 2 полное совпадение опыта работы
         self.applicant.experience = 'Three years'
@@ -129,7 +129,7 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_experience_match == 0.15)
+        self.assertEqual(coefficient_with_experience_match, 0.15)
 
         # 3 частичное совпадение опыта работы (Пользовательский опыт работы оказался больше чем у вакансии)
         vac["experience"] = 'Year'
@@ -140,7 +140,7 @@ class RecomendationsTests(TestCase):
             vacancy=vac,
             tech_similarity=0
         )
-        self.assertTrue(coefficient_with_experience_partial_match == 0.1275)
+        self.assertEqual(coefficient_with_experience_partial_match, 0.1275)
 
     def test_calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy_by_work_format(self):
         '''Проверка корректного рассчёта коэффициента сходства избранной вакансии и обычной вакансии, полученной из апи, по их формату работы'''
@@ -154,32 +154,32 @@ class RecomendationsTests(TestCase):
         
         # совпадение 1 формата работы                          
         all_favourites = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=self.applicant))
-        vac_from_api["work_formats"] = [WorkFormat.objects.get(name_eng="ON_SITE")]
+        vac_from_api["work_formats"] = [WorkFormat.objects.get(name_eng="ON_SITE").name]
         coefficient_with_workformat_match = calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(
             vacancy=vac_from_api,
             fav=all_favourites.get(fav_vacancy.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(0.15 == coefficient_with_workformat_match)
+        self.assertEqual(0.15, coefficient_with_workformat_match)
 
         # частичное совпадение формата работы
-        vac_from_api["work_formats"] = [WorkFormat.objects.get(name_eng="ON_SITE"), WorkFormat.objects.get(name_eng="HYBRID")]
+        vac_from_api["work_formats"] = [WorkFormat.objects.get(name_eng="ON_SITE").name, WorkFormat.objects.get(name_eng="HYBRID").name]
         coefficient_with_workformat_partial_match = calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(
             vacancy=vac_from_api,
             fav=all_favourites.get(fav_vacancy.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(0.105 == coefficient_with_workformat_partial_match)
+        self.assertEqual(0.105, coefficient_with_workformat_partial_match)
 
         # совпадение нескольких форматов
-        fav_vacancy.work_format.add(*[WorkFormat.objects.get(name_eng="HYBRID")]) # добавляем ещё 1 формат работы 
+        fav_vacancy.work_formats.add(*[WorkFormat.objects.get(name_eng="HYBRID")]) # добавляем ещё 1 формат работы 
         all_favourites_new = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=self.applicant))
         coefficient_with_workformat_whole_match = calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(
             vacancy=vac_from_api,
             fav=all_favourites_new.get(fav_vacancy.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_workformat_whole_match == 0.22)
+        self.assertEqual(coefficient_with_workformat_whole_match, 0.22)
 
         # # несовпадение
         vac_from_api["work_formats"] = [WorkFormat.objects.get(name_eng="Not specified")]
@@ -188,9 +188,9 @@ class RecomendationsTests(TestCase):
             fav=all_favourites_new.get(fav_vacancy.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_workformat_no_match == 0.0)
+        self.assertEqual(coefficient_with_workformat_no_match, 0.0)
 
-        fav_vacancy.work_format.remove(*[WorkFormat.objects.get(name_eng="HYBRID")])
+        fav_vacancy.work_formats.remove(*[WorkFormat.objects.get(name_eng="HYBRID")])
 
     def test_calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy_by_experience(self):
         '''Проверка корректного рассчёта коэффициента сходства избранной вакансии и обычной вакансии, полученной из апи, по их опыту работы'''
@@ -208,7 +208,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_experience_match == 0.15)
+        self.assertEqual(coefficient_with_experience_match, 0.15)
 
         # 2 НЕсовпадение опыта работы
         fav_vac.experience = 'No exp'
@@ -220,7 +220,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites_new_no_match_exp.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_experience_no_match == 0.0)
+        self.assertEqual(coefficient_with_experience_no_match, 0.0)
 
         # 3 частичное совпадение опыта работы (Пользовательский опыт работы оказался больше чем у вакансии)
         fav_vac.experience = 'Six years'
@@ -232,7 +232,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites_new_partial_exp.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_experience_partial_match == 0.1275)
+        self.assertEqual(coefficient_with_experience_partial_match, 0.1275)
 
     def test_calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy_by_payment(self):
         fav_vac = self.vacancy
@@ -242,13 +242,25 @@ class RecomendationsTests(TestCase):
         fav_vac.save()
 
         # 1 обе вакансии не имеют оплаты (имеется ввиду по договорённости)
+        otkat = self.vacancy_gathered_from_api_1
+        vac_from_api["payment"] = {
+            'payment_from': 0,
+            'payment_to': 0,
+            'currency': 'RUR',
+            'by_agreement': True
+        }
+        fav_vac.payment_from = 0
+        fav_vac.payment_to = 0
+        fav_vac.save()
+
         all_favourites = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.all())
         coefficient_with_payment_equal_by_agreement = calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(
             vacancy=vac_from_api,
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_payment_equal_by_agreement == 0.075)
+        self.assertEqual(coefficient_with_payment_equal_by_agreement, 0.075)
+        vac_from_api = otkat
 
         # 2 вакансия избранная имеет какую-то инфу о зп, а найденная из api нет (т.е by_agreement)
         fav_vac.payment_from = 500_000
@@ -260,7 +272,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_payment_none_info_for_api_vacancy == 0.0)
+        self.assertEqual(coefficient_with_payment_none_info_for_api_vacancy, 0.0)
 
         # 3 избранная вакансия и найденная имеют какую-то инфу о зп ( рассмотрю несколько случаев )
         # 3.1 у api вакансии и избранной payment_to=0, но payment_from имеет какие-то значения
@@ -272,7 +284,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_payment_to_0 == 0.125)
+        self.assertEqual(coefficient_with_payment_to_0, 0.125)
 
         # 3.2 у api вакансии payment_to=0, а у избранной payment_from = 0
         fav_vac.payment_from = 0
@@ -284,7 +296,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_vac_payment_to_0 == 0.125)
+        self.assertEqual(coefficient_with_api_vac_payment_to_0, 0.125)
 
         # 3.3 у api вакансии payment_to=0, а у избранной всё есть
         fav_vac.payment_from = 550_000
@@ -297,7 +309,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_vac_payment_to_0 == 0.125)
+        self.assertEqual(coefficient_with_api_vac_payment_to_0, 0.125)
 
         # 3.4, 3.5, 3.6 аналогичные, только payment_from у api вакансии = 0, вместо payment_to
 
@@ -311,7 +323,7 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_all_info == 0.125)
+        self.assertEqual(coefficient_with_api_all_info, 0.125)
 
         # 4 избранная вакансия не имеет инфы о зп, а найденная имеет
         fav_vac.payment_from = 0
@@ -324,4 +336,4 @@ class RecomendationsTests(TestCase):
             fav=all_favourites.get(fav_vac.id),
             similarity_by_keywords=0
         )
-        self.assertTrue(coefficient_with_api_no_info_fav == 0.0)
+        self.assertEqual(coefficient_with_api_no_info_fav, 0.0)

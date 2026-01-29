@@ -45,7 +45,7 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
             'currency': "RUR",
             'by_agreement': True if superjob_vacancy_data["payment_from"] == 0 and superjob_vacancy_data["payment_to"] == 0 else False
         },
-        'work_formats': work_format_values,
+        'work_formats': [wf.name for wf in work_format_values],
         'experience': experience[0],
         'experience_ru': experience[2],
         'date_published': datetime.fromtimestamp(superjob_vacancy_data["date_published"]),
@@ -77,8 +77,9 @@ def get_vacancies_from_superjob_source(query: str, applicant_city_ru_format: str
     if not query:
         del params["keywords"]
 
-    if salary_from != 0 or are_for_recommendations:
+    if salary_from != 0:
         params['payment_from'] = salary_from
+        params['no_agreement'] = True
 
     vacancies = []
     if pages_count > 1:

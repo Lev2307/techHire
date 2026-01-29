@@ -25,8 +25,8 @@ class TestAccounts(TestCase):
         self.password = '123'
         self.applicant = Applicant.objects.create_user(username=self.username, password=self.password)
         self.applicant.specializations.add(*[self.specs[0], self.specs[1]])
-        self.applicant.techs.add(*[self.techs[0], self.techs[1]])
-        self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
+        self.applicant.technologies.add(*[self.techs[0], self.techs[1]])
+        self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
 
         self.own_tech = Technology.objects.create(
             name='admin tech',
@@ -71,21 +71,21 @@ class TestAccounts(TestCase):
 
     def test_edit_profile(self): # неправильные данные могут быть только со стороны запроса, поскольку каждое заполняемое поле - select ;>
         '''Проверка реадктирования профиля пользователя'''
-        old_exp = Applicant.objects.all().first().experience
+        applicant = Applicant.objects.all().first()
+        old_exp = applicant.experience
         new_data = {
             'city': 'Moscow',
             'experience': 'Three years',
-            'preferred_work_format': '2',
-            'specializations': [Specialization.objects.get(name="DevOps").id],
-            'technologies': [Technology.objects.get(name="Java").id],
+            'preferred_work_formats': [str(WorkFormat.objects.get(name_eng="ON_SITE").id)], 
+            'specializations': [self.specs[1], self.specs[2]],
+            'technologies': [self.techs[1], self.techs[2]],
         }
         self.client.login(username=self.username, password=self.password)
         response = self.client.post(reverse("accounts:edit-profile"), data=new_data)
-        print(Applicant.objects.all().first().experience)
-        overrided_applicant_exp = Applicant.objects.all().first().experience
+        applicant.refresh_from_db()
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(overrided_applicant_exp, new_data["experience"])
-        self.assertNotEqual(old_exp, overrided_applicant_exp)
+        self.assertEqual(applicant.experience, new_data["experience"])
+        self.assertNotEqual(old_exp, Applicant.objects.all().first().experience)
 
     def test_adding_own_technology_option_is_login_required(self):
         '''Проверка: только авторизованный пользователь может добавить собсвтенный вариант технологии к себе'''

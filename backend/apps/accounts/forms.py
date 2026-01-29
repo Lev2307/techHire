@@ -18,7 +18,7 @@ class ApplicantForm(forms.ModelForm):
         widget=forms.CheckboxSelectMultiple,
         error_messages={'required': "Выберите хотя бы один пункт из списка навыков!"}
     )
-    preferred_work_format = forms.ModelMultipleChoiceField(
+    preferred_work_formats = forms.ModelMultipleChoiceField(
         label='Предпочитаемый формат работы',
         queryset=WorkFormat.objects.exclude(name=WORK_FORMAT_CHOICES[0][1]),
         widget=forms.CheckboxSelectMultiple,
@@ -26,7 +26,7 @@ class ApplicantForm(forms.ModelForm):
     )
     class Meta:
         model = Applicant
-        fields = ['city', 'experience', 'preferred_work_format', 'specializations', 'technologies']
+        fields = ['city', 'experience', 'preferred_work_formats', 'specializations', 'technologies']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None) # Передаем юзера во вьюхе

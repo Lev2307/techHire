@@ -27,7 +27,7 @@ class ApplicantSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(required=False)
     class Meta:
         model = Applicant
-        fields = ['id', 'username', 'first_name', 'email', 'city', 'experience', 'preferred_work_format', 'specializations', 'technologies', 'is_sub', 'linked_telegram']
+        fields = ['id', 'username', 'first_name', 'email', 'city', 'experience', 'preferred_work_formats', 'specializations', 'technologies', 'is_sub', 'linked_telegram']
         read_only_fields = ['username', 'is_sub', 'linked_telegram']
 
     def __init__(self, *args, **kwargs):
@@ -46,7 +46,7 @@ class ApplicantSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         specializations = validated_data.pop('specializations', [])
         technologies = validated_data.pop('technologies', [])
-        preferred_work_formats = validated_data.pop('preferred_work_format', [])
+        preferred_work_formats = validated_data.pop('preferred_work_formats', [])
         
         tg_user_data = self.context['tg_user_data']
         username = tg_user_data.get('username')
@@ -65,6 +65,6 @@ class ApplicantSerializer(serializers.ModelSerializer):
         if technologies:
             obj.technologies.set(technologies)
         if preferred_work_formats:
-            obj.preferred_work_format.set(preferred_work_formats)
+            obj.preferred_work_formats.set(preferred_work_formats)
 
         return obj

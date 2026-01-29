@@ -56,7 +56,7 @@ class Vacancy(models.Model):
     currency = models.CharField("Валюта", max_length=3)
     experience = models.CharField('Опыт', choices=EXPERIENCE_CHOICES, default=EXPERIENCE_CHOICES[0][0])
     education = models.CharField('Образование', choices=EDUCATION_CHOICES, default=EDUCATION_CHOICES[0][0])
-    work_format = models.ManyToManyField(WorkFormat)
+    work_formats = models.ManyToManyField(WorkFormat)
     date_published = models.DateTimeField('Дата опубликования вакансии')
     valid_until = models.DateTimeField('Вакансия действительна до')
     original_link = models.URLField('Ссылка на вакансию', max_length=150) 

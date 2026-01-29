@@ -4,8 +4,8 @@ def calculate_total_similarity_between_appilicant_profile_and_vacancy(applicant_
     '''
         Вычисление конечного коэффициента совпадения вакансий с профилем пользователя, используя доп поля (experience, work_format)
     '''
-    applicant_work_formats = sorted(applicant_profile["preferred_work_format"])
-    vacancy_work_formats = sorted([wf.name for wf in vacancy["work_formats"]])
+    applicant_work_formats = sorted(applicant_profile["preferred_work_formats"])
+    vacancy_work_formats = sorted(vacancy["work_formats"])
     work_format_similarity_ratio = 0
     if applicant_work_formats == vacancy_work_formats:
         work_format_similarity_ratio = 1 * 0.15

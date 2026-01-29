@@ -56,7 +56,7 @@ class VacanciesViewsTests(TestCase):
             initial_source='HH', 
             firm=self.firm
         )
-        self.vacancy.work_format.add(WorkFormat.objects.get(name='Не имеет значения'))
+        self.vacancy.work_formats.add(WorkFormat.objects.get(name='Не имеет значения'))
         self.vacancy.save()
 
     def test_home_view_anonymous_response(self):

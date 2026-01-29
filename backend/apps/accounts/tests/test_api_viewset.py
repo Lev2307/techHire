@@ -42,7 +42,7 @@ class ApplicantsViewSetTests(APITestCase):
         )
         self.applicant.specializations.add(*[self.specs[0], self.specs[3]])
         self.applicant.technologies.add(*[self.techs[0], self.techs[3], self.techs[7], self.techs[12]])
-        self.applicant.preferred_work_format.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
+        self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
 
         self.tech = Technology.objects.create(name='Test', creator=self.applicant)
 
@@ -283,7 +283,7 @@ class ApplicantsViewSetTests(APITestCase):
         owner_response = self.client.patch(url, data=data)
 
         self.assertEqual(regular_response.status_code, 403)
-        self.assertIn("Доступ к технологии может получить", regular_response.json()["message"])
+        self.assertIn("Доступ к технологии может получить", regular_response.json()["detail"])
         self.assertEqual(owner_response.status_code, 200)
         self.assertEqual(Technology.objects.filter(creator=self.applicant).first().name, data["name"])
 
@@ -328,7 +328,7 @@ class ApplicantsViewSetTests(APITestCase):
         owner_response = self.client.delete(url)
 
         self.assertEqual(regular_response.status_code, 403)
-        self.assertIn("Доступ к технологии может получить", regular_response.json()["message"])
+        self.assertIn("Доступ к технологии может получить", regular_response.json()["detail"])
         self.assertEqual(owner_response.status_code, 204)
         self.assertEqual(Technology.objects.filter(creator=self.applicant).first(), None)
     
@@ -342,7 +342,7 @@ class ApplicantsViewSetTests(APITestCase):
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, 400)
-        self.assertIn('Нельзя удалить одобренную', response.json()["message"])
+        self.assertIn('Нельзя удалить одобренную', response.json()["detail"])
 
     def test_applicant_created_technologies_list_login_required(self):
         '''Проверка: список созданных пользователем вариантов технологий доступен только авторизованным пользователям (GET)'''
@@ -415,15 +415,15 @@ class ApplicantsViewSetTests(APITestCase):
         delete_response = self.client.delete(url)
 
         self.assertEqual(patch_response.status_code, 403)
-        self.assertIn("Технология уже прошла модерацию", patch_response.json()["message"])
+        self.assertIn("Технология уже прошла модерацию", patch_response.json()["detail"])
         self.assertEqual(delete_response.status_code, 403)
-        self.assertIn("Технология уже прошла модерацию", delete_response.json()["message"])
+        self.assertIn("Технология уже прошла модерацию", delete_response.json()["detail"])
 
-    # @override_settings(
-    #     CELERY_TASK_ALWAYS_EAGER=True,
-    #     CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-    #     BROKER_BACKEND='memory' # Use in-memory broker
-    # )
+    @override_settings(
+        CELERY_TASK_ALWAYS_EAGER=True,
+        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        BROKER_BACKEND='memory' # Use in-memory broker
+    )
     def test_denying_technology_while_moderation(self):
         '''Проверка удаления (отклонения) технологии при модерировании (DELETE)'''
         url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
@@ -434,11 +434,11 @@ class ApplicantsViewSetTests(APITestCase):
         self.assertEqual(delete_response.status_code, 204)
         self.assertEqual(Technology.objects.filter(creator=self.applicant).count(), 0)
 
-    # @override_settings(
-    #     CELERY_TASK_ALWAYS_EAGER=True,
-    #     CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-    #     BROKER_BACKEND='memory' # Use in-memory broker
-    # )
+    @override_settings(
+        CELERY_TASK_ALWAYS_EAGER=True,
+        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        BROKER_BACKEND='memory' # Use in-memory broker
+    )
     def test_approving_technology_while_moderation(self):
         '''Проверка подтверждения технологии при модерировании (PATCH)'''
         url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
@@ -461,7 +461,7 @@ class ApplicantsViewSetTests(APITestCase):
         wrong_response = self.client.get(url, data=data_with_expired_time)
 
         self.assertEqual(wrong_response.status_code, 401)
-        self.assertIn("Время сессии истекло", wrong_response.json()["message"])
+        self.assertIn("Время сессии истекло", wrong_response.json()["detail"])
 
     def test_telegram_auth_request_invalid_hash(self):
         '''Проверка вывода ошибки запроса при несовпадении хэшей (GET)'''
@@ -476,7 +476,7 @@ class ApplicantsViewSetTests(APITestCase):
         wrong_response = self.client.get(url, data=wrong_data)
 
         self.assertEqual(wrong_response.status_code, 400)
-        self.assertIn("хеш не совпал", wrong_response.json()["message"])
+        self.assertIn("хеш не совпал", wrong_response.json()["detail"])
     
     def test_telegram_auth_with_already_sign_up_applicant(self):
         '''Проверка логина пользователя, который уже регистрировался (GET)'''
@@ -491,7 +491,7 @@ class ApplicantsViewSetTests(APITestCase):
         applicant_in_db_response = self.client.get(url, data=applicant_in_db_data)
 
         self.assertEqual(applicant_in_db_response.status_code, 200)
-        self.assertEqual(applicant_in_db_response.json()["message"], "Успешный вход в систему")
+        self.assertEqual(applicant_in_db_response.json()["message"], "Успешный вход в систему.")
         self.assertEqual(applicant_in_db_response.json()["user"], self.applicant.username)
         self.assertNotIn('tg_user_data', self.client.session)
         self.assertEqual(str(self.client.session['_auth_user_id']), str(self.applicant.id))
@@ -510,7 +510,7 @@ class ApplicantsViewSetTests(APITestCase):
         applicant_not_in_db_response = self.client.get(url, data=applicant_not_in_db_data)
 
         self.assertEqual(applicant_not_in_db_response.status_code, 200)
-        self.assertEqual(applicant_not_in_db_response.json()["message"], "Аккаунт не найден, пожалуйста, завершите регистрацию")
+        self.assertEqual(applicant_not_in_db_response.json()["message"], "Аккаунт не найден, пожалуйста, завершите регистрацию.")
         self.assertEqual(applicant_not_in_db_response.json()["status"], "register")
         self.assertIn('tg_user_data', self.client.session)
 
@@ -520,7 +520,7 @@ class ApplicantsViewSetTests(APITestCase):
         wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
 
         self.assertEqual(wrong_response.status_code, 400)
-        self.assertIn("Данные телеграм не найдены в сессии", wrong_response.json()["message"])
+        self.assertIn("Данные телеграм не найдены в сессии", wrong_response.json()["detail"])
 
     def test_applicant_sign_up_with_expired_link_time(self):
         '''Проверка регистрации пользователя при устаревании ссылки (POST)'''
@@ -536,7 +536,7 @@ class ApplicantsViewSetTests(APITestCase):
         wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
 
         self.assertEqual(wrong_response.status_code, 400)
-        self.assertIn("Время сессии истекло", wrong_response.json()["message"])
+        self.assertIn("Время сессии истекло", wrong_response.json()["detail"])
 
     def test_applicant_sign_up_with_unmatch_hashes(self):
         '''Проверка регистрации пользователя при несовпадении хэшей (POST)'''
@@ -552,7 +552,7 @@ class ApplicantsViewSetTests(APITestCase):
         wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
 
         self.assertEqual(wrong_response.status_code, 400)
-        self.assertIn("хеш не совпал", wrong_response.json()["message"])
+        self.assertIn("хеш не совпал", wrong_response.json()["detail"])
 
     def test_applicant_sign_up(self):
         '''Проверка регистрации пользователя при корректных данных у ключа tg_user_data в сессии (POST)'''
@@ -570,5 +570,5 @@ class ApplicantsViewSetTests(APITestCase):
         self.assertEqual(approp_response.status_code, 201)
         self.assertNotIn('tg_user_data', self.client.session) # ключ удалился из сессии
         self.assertEqual(str(self.client.session['_auth_user_id']), str(Applicant.objects.filter(username=username).first().id)) # пользователь залогинился
-        self.assertEqual(approp_response.json()["message"], 'Вы успешно вошли в систему!')
+        self.assertEqual(approp_response.json()["message"], 'Вы успешно вошли в систему.')
         self.assertEqual(approp_response.json()["user"], username)

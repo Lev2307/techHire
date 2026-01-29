@@ -40,7 +40,6 @@ def process_recoms_for_single_user(applicant_id):
                         new_recommended_vacancies.append(recom)
             # print(f"process_recoms_for_single_user - {len(new_recommended_vacancies)}")
             for new_vac in new_recommended_vacancies:
-                new_vac["work_formats"] = [wf.name for wf in new_vac["work_formats"]]
                 vacancy_text_for_telegram = prepare_vacancy_for_telegram_message(new_vac)
                 send_telegram_message.delay(vacancy_text_for_telegram, applicant_id)
 

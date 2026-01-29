@@ -8,8 +8,8 @@ from django.views import generic, View
 
 from apps.accounts.models import Applicant
 from .api_utils import get_vacancies_from_combined_api_sources, get_hh_vacancy_data_from_api, get_superjob_vacancy_data_from_api
-from .helpers import create_vacancy_model_and_firm_model_instances
-from .models import Vacancy, Firm, SearchHistory, INITIAL_SOURCES
+from .helpers import create_vacancy_instance
+from .models import Vacancy, SearchHistory, INITIAL_SOURCES
 from .recommendations import get_recommended_vacancies_by_content
 
 class HomeView(generic.TemplateView):
@@ -75,7 +75,7 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
         vac_api_id = self.kwargs['pk']
         vac_source = request.GET.get('parse_from', '')
         url_params = {
-            'query': urllib.parse.quote_plus(request.GET.get('q')),
+            'query': urllib.parse.unquote_plus(request.GET.get('q')),
             'payment_from': request.GET.get('pf')
         }
         applicant = Applicant.objects.get(username=self.request.user.username)
@@ -87,16 +87,14 @@ class AddVacancyToFavourites(LoginRequiredMixin, View):
                     vacancy_info_from_api = get_hh_vacancy_data_from_api(vac_api_id)
                 if vacancy_info_from_api:
                     if self.model.objects.filter(user=self.request.user).count() <= 5: 
-                        create_vacancy_model_and_firm_model_instances(
-                            self.model,
+                        create_vacancy_instance(
                             self.request.user,
                             vacancy_info_from_api
                         )
                         return HttpResponseRedirect(reverse('vacancies:search_vacancies', query=url_params))
                     else:
                         if applicant.is_sub:
-                            create_vacancy_model_and_firm_model_instances(
-                                self.model,
+                            create_vacancy_instance(
                                 self.request.user,
                                 vacancy_info_from_api
                             )
@@ -115,7 +113,7 @@ class RemoveVacancyFromFavorites(LoginRequiredMixin, generic.DeleteView):
     def get_success_url(self):
         if self.request.GET.get('q') != None and self.request.GET.get('pf') != None:
             url_params = {
-                'query': urllib.parse.quote_plus(self.request.GET.get('q')),
+                'query': urllib.parse.unquote_plus(self.request.GET.get('q')),
                 'payment_from': self.request.GET.get('pf')
             }
             return reverse_lazy("vacancies:search_vacancies", query=url_params)

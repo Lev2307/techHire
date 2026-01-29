@@ -11,8 +11,8 @@ def calculate_similarity_by_other_fields_between_vacancy_and_favourite_vacancy(v
         Рассчёт коэффициента совпадения вакансии с избранной, используя доп поля (experience, work_format, payment)
     '''
     # рассчёт коэффициента совпадения форматов работ у вакансии и пользователя
-    fav_work_formats = sorted(fav["work_format"])
-    vacancy_work_formats = sorted([wf.name for wf in vacancy["work_formats"]])
+    fav_work_formats = sorted(fav["work_formats"])
+    vacancy_work_formats = sorted(vacancy["work_formats"])
     work_format_similarity_ratio = 0
     if fav_work_formats == vacancy_work_formats:
         work_format_similarity_ratio = 1 * 0.15

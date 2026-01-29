@@ -11,7 +11,7 @@ from currency_converter import CurrencyConverter
 from config.settings import SPECIALIZATIONS_LIST
 from apps.accounts.models import Applicant
 from .api_utils.constants import NOT_FOUND_DUTIES, NOT_FOUND_REQS
-from .models import Firm, Vacancy, SearchHistory
+from .models import Firm, Vacancy, SearchHistory, WorkFormat
 
 ALL_TECHNOLOGIES_FOR_RECOMMENDATIONS = [
     'Python', 'TypeScript', 'Javascript', 'Rust', 'C#', 'C++', 'Swift', 'Kotlin', 'Flutter', 'Java', 'Go', 'Ruby',
@@ -211,7 +211,7 @@ def get_applicant_criterias_for_filtering_vacancies(user: Applicant) -> dict:
         'city': user.get_city_display(), # город в ру формате
         'experience': user.get_experience_display(), # опыт работы в ру формате
         'experience_eng': user.experience,
-        'preferred_work_format': [wf.name for wf in user.preferred_work_format.all()],
+        'preferred_work_formats': [wf.name for wf in user.preferred_work_formats.all()],
         'specializations': " ".join([spec.name for spec in user.specializations.all()]),
         'technologies': " ".join(applicant_technologies),
     }
@@ -236,7 +236,7 @@ def get_applicant_favourite_vacancies_info_for_filtering_vacancies(vacancies: Qu
             'experience_eng': vacancy.experience,
             'experience': vacancy.get_experience_display(), # experience in ru format,
             'education': vacancy.get_education_display(), # education in ru format,
-            'work_format': [wf.name for wf in vacancy.work_format.all()],
+            'work_formats': [wf.name for wf in vacancy.work_formats.all()],
         }
     return applicant_fav_vacancies_data
 
@@ -244,8 +244,8 @@ def get_applicant_search_history_info_for_filtering_vacancies(search_history: Qu
     '''Возвращает информацию о истории поиска пользователя для дальнейшей генерации персональных рекомендаций'''
     return [sh.search_query for sh in search_history]
 
-def create_vacancy_model_and_firm_model_instances(model: Vacancy, user: Applicant, vacancy_data: dict):
-    '''Создаёт модель вакансии и модель фирмы'''
+def create_vacancy_instance(user: Applicant, vacancy_data: dict):
+    '''Создаёт модель вакансии. Также при наличии достаточной информации создаёт модель фирмы'''
     if not Firm.objects.filter(name=vacancy_data["employer"]["name"]).exists() and vacancy_data["employer"]["name"] != "":
         firm = Firm.objects.create(
             name=vacancy_data["employer"]["name"],
@@ -255,8 +255,8 @@ def create_vacancy_model_and_firm_model_instances(model: Vacancy, user: Applican
         firm.save()
     else:
         firm = Firm.objects.get(name=vacancy_data["employer"]["name"])
-    # creating vacancy instance
-    vac = model.objects.create(
+
+    vacancy = Vacancy.objects.create(
         user=user,
         initial_source=vacancy_data["initial_source"],
         external_id=vacancy_data["external_id"],
@@ -274,7 +274,9 @@ def create_vacancy_model_and_firm_model_instances(model: Vacancy, user: Applican
         original_link=vacancy_data["original_link"],
         firm=firm
     )
-    vac.work_format.add(*vacancy_data["work_formats"])
+    work_formats = [WorkFormat.objects.get(name=wf) for wf in vacancy_data["work_formats"]]
+    vacancy.work_formats.add(*work_formats)
+    return vacancy
 
 def prepare_vacancy_for_telegram_message(vacancy: dict) -> str:
     '''Излечение нужных данных из вакансии, объединение их в 1 текст для телеграм сообщения'''
