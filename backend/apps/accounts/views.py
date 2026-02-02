@@ -10,6 +10,8 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views import generic
 
+from rest_framework.authtoken.models import Token
+
 from config import settings
 from .forms import ApplicantForm, TechnologyForm
 from .models import Applicant, ApplicantLinkedTelegram, Technology
@@ -158,6 +160,9 @@ def sign_up_view(request):
                 form.save_m2m()
 
                 login(request, applicant)
+                token = Token.objects.create(user=applicant)
+                linked_telega.auth_token = token.key
+                linked_telega.save()
 
                 del request.session['tg_user_data']
                 return HttpResponseRedirect(reverse('accounts:profile'))

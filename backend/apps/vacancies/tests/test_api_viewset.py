@@ -2,6 +2,7 @@ from django.core.management import call_command
 from django.urls import reverse
 
 from rest_framework.test import APITestCase
+from rest_framework.authtoken.models import Token
 
 from apps.accounts.models import Applicant, Specialization, Technology
 from ..api_utils.api_hh import (
@@ -34,11 +35,13 @@ class VacanciesViewsSetTests(APITestCase):
         self.applicant.specializations.add(*[self.specs[0], self.specs[2]])
         self.applicant.technologies.add(*[self.techs[0], self.techs[2], self.techs[4]])
         self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="ON_SITE")])
+        self.applicant_token = Token.objects.create(user=self.applicant)
 
         self.regular_user = Applicant.objects.create_user(
             username='regular',
             password='123reg'
         )
+        self.regular_user_token = Token.objects.create(user=self.regular_user)
 
         self.latest_python_vacancies = get_vacancies_from_headhunter_source(
             query='Python', 
@@ -72,7 +75,7 @@ class VacanciesViewsSetTests(APITestCase):
         url = reverse('api:vacancies-favourites')
         anonymous_response = self.client.get(url)
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.get(url)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -85,11 +88,10 @@ class VacanciesViewsSetTests(APITestCase):
         url = reverse('api:vacancies-detail', args=(self.vacancy.id, ))
         anonymous_response = self.client.get(url)
 
-        self.client.force_login(self.regular_user) # other user
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.regular_user_token.key}')
         reg_response = self.client.get(url)
-        self.client.logout()
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         owner_response = self.client.get(url)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -104,7 +106,7 @@ class VacanciesViewsSetTests(APITestCase):
         url = reverse('api:vacancies-recommendations')
         anonymous_response = self.client.get(url)
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.get(url)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -120,7 +122,7 @@ class VacanciesViewsSetTests(APITestCase):
         url = reverse('api:vacancies-search')
         anonymous_response = self.client.post(url, data=data)
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.post(url, data=data)
         self.assertEqual(anonymous_response.status_code, 401)
         self.assertEqual(anonymous_response.json()["detail"], "Authentication credentials were not provided.")
@@ -130,7 +132,7 @@ class VacanciesViewsSetTests(APITestCase):
     def test_search_vacancies_with_no_query_param(self):
         '''Проверка вывода ошибки при попытке поиска без query (POST)'''
         url = reverse('api:vacancies-search')
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url)
 
         self.assertEqual(response.status_code, 400)
@@ -142,7 +144,7 @@ class VacanciesViewsSetTests(APITestCase):
         data2_weird = {'query': 'выалоруцыклпорммивыалорпимлвроаы'}
         url = reverse('api:vacancies-search')
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         correct_response = self.client.post(url, data=data1)
         weird_response = self.client.post(url, data=data2_weird) 
         
@@ -158,7 +160,7 @@ class VacanciesViewsSetTests(APITestCase):
         }
         url = reverse('api:vacancies-search')
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url, data=data)
         check_payment = list(map(payment_from_gt_applicant_option, [vac["payment"] for vac in response.json()["vacancies"]]))
         self.assertEqual(all(el == True for el in check_payment), True)
@@ -173,7 +175,7 @@ class VacanciesViewsSetTests(APITestCase):
         url = reverse('api:vacancies-add_to_favourites')
         anonymous_response = self.client.post(url, data=data)
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.post(url, data=data)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -191,7 +193,7 @@ class VacanciesViewsSetTests(APITestCase):
         }
         url = reverse('api:vacancies-add_to_favourites')
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url, data=data)
 
         self.assertEqual(response.status_code, 400)
@@ -205,7 +207,7 @@ class VacanciesViewsSetTests(APITestCase):
         }
         url = reverse('api:vacancies-add_to_favourites')
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url, data=data)
 
         self.assertEqual(response.status_code, 400)
@@ -219,7 +221,7 @@ class VacanciesViewsSetTests(APITestCase):
         }
         url = reverse('api:vacancies-add_to_favourites')
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url, data=data)
 
         self.assertEqual(response.status_code, 400)
@@ -236,13 +238,12 @@ class VacanciesViewsSetTests(APITestCase):
         }
         url = reverse('api:vacancies-add_to_favourites')
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         not_sub_response = self.client.post(url, data=data)
-        self.client.logout()
 
         self.applicant.is_sub = True
         self.applicant.save()
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         sub_response = self.client.post(url, data=data)
 
         self.assertEqual(not_sub_response.status_code, 403)
@@ -255,11 +256,10 @@ class VacanciesViewsSetTests(APITestCase):
         url = reverse('api:vacancies-remove_from_favourites', args=(self.vacancy.id, ))
         anonymous_response = self.client.delete(url)
 
-        self.client.force_login(self.regular_user) # other user
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.regular_user_token.key}')
         reg_response = self.client.delete(url)
-        self.client.logout()
 
-        self.client.force_login(self.applicant)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         owner_response = self.client.delete(url)
 
         self.assertEqual(anonymous_response.status_code, 401)

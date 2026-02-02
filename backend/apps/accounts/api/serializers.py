@@ -4,7 +4,13 @@ from django.db.models import Q
 
 from rest_framework import serializers
 
-from ..models import Applicant, ApplicantLinkedTelegram, Technology
+from apps.vacancies.api.serializers import WorkFormatsSerializer
+from ..models import Applicant, ApplicantLinkedTelegram, Technology, Specialization, CITY_CHOICES, EXPERIENCE_CHOICES
+
+class SpecializationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Specialization
+        fields = ["name"]
 
 class TechnologySerializer(serializers.ModelSerializer):
     class Meta:
@@ -27,8 +33,8 @@ class ApplicantSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(required=False)
     class Meta:
         model = Applicant
-        fields = ['id', 'username', 'first_name', 'email', 'city', 'experience', 'preferred_work_formats', 'specializations', 'technologies', 'is_sub', 'linked_telegram']
-        read_only_fields = ['username', 'is_sub', 'linked_telegram']
+        fields = ['id', 'username', 'first_name', 'email', 'city', 'experience', 'preferred_work_formats', 'specializations', 'technologies', 'is_sub', 'notifications_enabled', 'linked_telegram']
+        read_only_fields = ['username', 'linked_telegram']
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
@@ -68,3 +74,25 @@ class ApplicantSerializer(serializers.ModelSerializer):
             obj.preferred_work_formats.set(preferred_work_formats)
 
         return obj
+
+class ApplicantFullSerializer(serializers.ModelSerializer):
+    city = serializers.ChoiceField(
+        source='get_city_display',
+        choices=CITY_CHOICES
+    )
+    experience = serializers.ChoiceField(
+        source='get_experience_display',
+        choices=EXPERIENCE_CHOICES
+    )
+    preferred_work_formats = WorkFormatsSerializer(many=True, read_only=True)
+    specializations = SpecializationSerializer(many=True, read_only=True)
+    technologies = TechnologySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Applicant
+        fields = ('id', 'first_name', 'email', 'city', 'experience', 'preferred_work_formats', 'specializations', 'technologies', 'is_sub', 'notifications_enabled')
+
+class ApplicantLinkedTelegramSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ApplicantLinkedTelegram
+        fields = ["auth_token"]

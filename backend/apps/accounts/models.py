@@ -52,6 +52,7 @@ class ApplicantLinkedTelegram(models.Model):
     chat_id = models.BigIntegerField(null=True, blank=True)
     date_linked = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=False) # нажал ли соискатель кнопку /start в боте или нет
+    auth_token = models.CharField(max_length=40)
 
     def __str__(self):
         return str(self.id)

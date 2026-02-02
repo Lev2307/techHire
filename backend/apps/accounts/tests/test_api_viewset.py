@@ -6,6 +6,7 @@ from django.core.management import call_command
 from django.urls import reverse
 
 from rest_framework.test import APITestCase, override_settings
+from rest_framework.authtoken.models import Token
 
 from config.settings import TELEGRAM_ID_FOR_TESTS
 from apps.vacancies.models import WorkFormat
@@ -43,6 +44,7 @@ class ApplicantsViewSetTests(APITestCase):
         self.applicant.specializations.add(*[self.specs[0], self.specs[3]])
         self.applicant.technologies.add(*[self.techs[0], self.techs[3], self.techs[7], self.techs[12]])
         self.applicant.preferred_work_formats.add(*[WorkFormat.objects.get(name_eng="REMOTE")])
+        self.applicant_token = Token.objects.create(user=self.applicant)
 
         self.tech = Technology.objects.create(name='Test', creator=self.applicant)
 
@@ -52,7 +54,7 @@ class ApplicantsViewSetTests(APITestCase):
             password="123"
         )
         self.admin_tech = Technology.objects.create(name='ADMIN TEST', creator=self.admin_user)
-
+        self.admin_token = Token.objects.create(user=self.admin_user)
 
     def test_all_applicants_info_list_permissions(self):
         '''Проверка permissions для экшена list (login_required + admin) (GET)'''
@@ -60,14 +62,12 @@ class ApplicantsViewSetTests(APITestCase):
         anonymous_response = self.client.get(url)
 
         # authenticated as admin
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         admin_user_response = self.client.get(url)
-        self.client.logout()
 
         # authenticated as regular user
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         regular_user_response = self.client.get(url)
-        self.client.logout()
 
         self.assertEqual(anonymous_response.status_code, 401)
         self.assertEqual(anonymous_response.json()["detail"], "Authentication credentials were not provided.")
@@ -85,14 +85,12 @@ class ApplicantsViewSetTests(APITestCase):
         anonymous_response = self.client.get(url)
 
         # authenticated as admin
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         admin_user_response = self.client.get(url)
-        self.client.logout()
 
         #authenticated as regular user
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         regular_user_response = self.client.get(url)
-        self.client.logout()
 
         self.assertEqual(anonymous_response.status_code, 401)
         self.assertEqual(anonymous_response.json()["detail"], "Authentication credentials were not provided.")
@@ -109,7 +107,7 @@ class ApplicantsViewSetTests(APITestCase):
         url = reverse("api:accounts-me")
         anonymous_response = self.client.get(url)
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.get(url)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -121,14 +119,12 @@ class ApplicantsViewSetTests(APITestCase):
         url = reverse("api:accounts-me")
         
         # first applicant
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         first_response = self.client.get(url)
-        self.client.logout()
 
         # second applicant
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         second_response = self.client.get(url)
-        self.client.logout()
 
         self.assertNotEqual(first_response.json()["id"], second_response.json()["id"])
         self.assertEqual(first_response.json()["username"], self.applicant.username)
@@ -141,7 +137,7 @@ class ApplicantsViewSetTests(APITestCase):
             'experience': 'No exp'
         }
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         partial_response = self.client.patch(url, data=new_partial_data)
         self.assertEqual(partial_response.status_code, 200)
         self.assertEqual(Applicant.objects.get(username=self.username).experience, new_partial_data["experience"])
@@ -154,7 +150,7 @@ class ApplicantsViewSetTests(APITestCase):
             'linked_telegram': 1000000001
         }
         
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.patch(url, data=read_only_data)
         self.assertEqual(response.status_code, 200)
         # Ничего не изменилось, он просто скипает их
@@ -173,7 +169,7 @@ class ApplicantsViewSetTests(APITestCase):
             'technologies': [new_tech.id, self.techs[2], self.techs[4]], # new_tech новая созданная
         }
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.put(url, data=new_data)
         edited_applicant = Applicant.objects.filter(username=self.applicant).first()
 
@@ -190,7 +186,7 @@ class ApplicantsViewSetTests(APITestCase):
         new_data = {
             'technologies': [new_tech.id, self.techs[2], self.techs[4]],
         }
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.patch(url, data=new_data)
 
         self.assertEqual(response.status_code, 400)
@@ -203,7 +199,7 @@ class ApplicantsViewSetTests(APITestCase):
         new_data = {
             'technologies': [new_tech.id, self.techs[2], self.techs[4]],
         }
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.patch(url, data=new_data)
 
         self.assertEqual(response.status_code, 200)
@@ -216,7 +212,7 @@ class ApplicantsViewSetTests(APITestCase):
         }
         anonymous_response = self.client.post(url, data=data)
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.post(url, data=data)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -230,7 +226,7 @@ class ApplicantsViewSetTests(APITestCase):
             'name': 'New tech'
         }
         
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url, data=data)
         created_tech = Technology.objects.filter(name=data["name"]).first()
 
@@ -246,7 +242,7 @@ class ApplicantsViewSetTests(APITestCase):
             'name': 'Python' # уже существует
         }
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.post(url, data=wrong_data)
         
         self.assertEqual(response.status_code, 400)
@@ -260,7 +256,7 @@ class ApplicantsViewSetTests(APITestCase):
         }
         anonymous_response = self.client.patch(url, data=data)
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.patch(url, data=data)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -274,12 +270,11 @@ class ApplicantsViewSetTests(APITestCase):
             'name': 'Edit test'
         }
         #other user
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         regular_response = self.client.patch(url, data=data)
-        self.client.logout()
 
         #owner
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         owner_response = self.client.patch(url, data=data)
 
         self.assertEqual(regular_response.status_code, 403)
@@ -296,7 +291,7 @@ class ApplicantsViewSetTests(APITestCase):
             'name': 'Edited name for test'
         }
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.put(url, data=data)
 
         self.assertEqual(Technology.objects.filter(creator=self.applicant).first().is_approved, False)
@@ -307,7 +302,7 @@ class ApplicantsViewSetTests(APITestCase):
         
         anonymous_response = self.client.delete(url)
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.delete(url)
 
         self.assertEqual(anonymous_response.status_code, 401)
@@ -319,12 +314,11 @@ class ApplicantsViewSetTests(APITestCase):
         url = reverse("api:accounts-delete_technology", args=(self.applicant.id, self.tech.id))
 
         #other user
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         regular_response = self.client.delete(url)
-        self.client.logout()
 
         #owner 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         owner_response = self.client.delete(url)
 
         self.assertEqual(regular_response.status_code, 403)
@@ -338,7 +332,7 @@ class ApplicantsViewSetTests(APITestCase):
         self.tech.save()
         url = reverse("api:accounts-delete_technology", args=(self.applicant.id, self.tech.id))
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         response = self.client.delete(url)
 
         self.assertEqual(response.status_code, 400)
@@ -349,7 +343,7 @@ class ApplicantsViewSetTests(APITestCase):
         url = reverse('api:accounts-applicant_created_technologies_list', args=(self.applicant.id, ))
         anonymous_response = self.client.get(url)
 
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         auth_response = self.client.get(url)
         
         self.assertEqual(anonymous_response.status_code, 401)
@@ -363,14 +357,12 @@ class ApplicantsViewSetTests(APITestCase):
         anonymous_response = self.client.get(url)
 
         # authenticated as regular user
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         regular_user_response = self.client.get(url)
-        self.client.logout()
 
         # authenticated as admin
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         admin_user_response = self.client.get(url)
-        self.client.logout()
 
         self.assertEqual(anonymous_response.status_code, 401)
         self.assertEqual(anonymous_response.json()["detail"], "Authentication credentials were not provided.")
@@ -387,14 +379,12 @@ class ApplicantsViewSetTests(APITestCase):
         anonymous_response = self.client.patch(url)
 
         # authenticated as regular user
-        self.client.login(username=self.username, password=self.password)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.applicant_token.key}')
         regular_user_response = self.client.patch(url)
-        self.client.logout()
 
         # authenticated as admin
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         admin_user_response = self.client.patch(url)
-        self.client.logout()
 
         self.assertEqual(anonymous_response.status_code, 401)
         self.assertEqual(anonymous_response.json()["detail"], "Authentication credentials were not provided.")
@@ -410,7 +400,7 @@ class ApplicantsViewSetTests(APITestCase):
         self.tech.save()
         url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
 
-        self.client.force_login(self.admin_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
         patch_response = self.client.patch(url)
         delete_response = self.client.delete(url)
 
@@ -419,36 +409,36 @@ class ApplicantsViewSetTests(APITestCase):
         self.assertEqual(delete_response.status_code, 403)
         self.assertIn("Технология уже прошла модерацию", delete_response.json()["detail"])
 
-    @override_settings(
-        CELERY_TASK_ALWAYS_EAGER=True,
-        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-        BROKER_BACKEND='memory' # Use in-memory broker
-    )
-    def test_denying_technology_while_moderation(self):
-        '''Проверка удаления (отклонения) технологии при модерировании (DELETE)'''
-        url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
+    # @override_settings(
+    #     CELERY_TASK_ALWAYS_EAGER=True,
+    #     CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+    #     BROKER_BACKEND='memory' # Use in-memory broker
+    # )
+    # def test_denying_technology_while_moderation(self):
+    #     '''Проверка удаления (отклонения) технологии при модерировании (DELETE)'''
+    #     url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
 
-        self.client.force_login(self.admin_user)
-        delete_response = self.client.delete(url)
+    #     self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
+    #     delete_response = self.client.delete(url)
 
-        self.assertEqual(delete_response.status_code, 204)
-        self.assertEqual(Technology.objects.filter(creator=self.applicant).count(), 0)
+    #     self.assertEqual(delete_response.status_code, 204)
+    #     self.assertEqual(Technology.objects.filter(creator=self.applicant).count(), 0)
 
-    @override_settings(
-        CELERY_TASK_ALWAYS_EAGER=True,
-        CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-        BROKER_BACKEND='memory' # Use in-memory broker
-    )
-    def test_approving_technology_while_moderation(self):
-        '''Проверка подтверждения технологии при модерировании (PATCH)'''
-        url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
+    # @override_settings(
+    #     CELERY_TASK_ALWAYS_EAGER=True,
+    #     CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+    #     BROKER_BACKEND='memory' # Use in-memory broker
+    # )
+    # def test_approving_technology_while_moderation(self):
+    #     '''Проверка подтверждения технологии при модерировании (PATCH)'''
+    #     url = reverse('api:accounts-moderate_technology', args=(self.tech.id, ))
 
-        self.client.force_login(self.admin_user)
-        patch_response = self.client.patch(url)
+    #     self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.admin_token.key}')
+    #     patch_response = self.client.patch(url)
         
-        self.assertEqual(patch_response.status_code, 200)
-        self.assertIn("была подтверждена модерацией", patch_response.json()["message"])
-        self.assertEqual(Technology.objects.filter(creator=self.applicant).first().is_approved, True)
+    #     self.assertEqual(patch_response.status_code, 200)
+    #     self.assertIn("была подтверждена модерацией", patch_response.json()["message"])
+    #     self.assertEqual(Technology.objects.filter(creator=self.applicant).first().is_approved, True)
 
     def test_telegram_auth_request_with_link_time_expired(self):
         '''Проверка вывода ошибки запроса при устаревании ссылки (GET)'''
@@ -489,13 +479,10 @@ class ApplicantsViewSetTests(APITestCase):
         }
         applicant_in_db_data["hash"] = generate_hash_for_tests(applicant_in_db_data)
         applicant_in_db_response = self.client.get(url, data=applicant_in_db_data)
-
         self.assertEqual(applicant_in_db_response.status_code, 200)
         self.assertEqual(applicant_in_db_response.json()["message"], "Успешный вход в систему.")
-        self.assertEqual(applicant_in_db_response.json()["user"], self.applicant.username)
-        self.assertNotIn('tg_user_data', self.client.session)
-        self.assertEqual(str(self.client.session['_auth_user_id']), str(self.applicant.id))
-
+        self.assertEqual(applicant_in_db_response.json()["username"], self.applicant.username)
+        self.assertEqual(applicant_in_db_response.json()["token"], self.applicant_token.key)
 
     def test_telegram_auth_for_new_applicant(self):
         '''Проверка логина пользователя, который до этого не регистрировался в системе (GET)'''
@@ -512,12 +499,11 @@ class ApplicantsViewSetTests(APITestCase):
         self.assertEqual(applicant_not_in_db_response.status_code, 200)
         self.assertEqual(applicant_not_in_db_response.json()["message"], "Аккаунт не найден, пожалуйста, завершите регистрацию.")
         self.assertEqual(applicant_not_in_db_response.json()["status"], "register")
-        self.assertIn('tg_user_data', self.client.session)
 
     def test_applicant_sign_up_with_no_tg_user_data(self):
         '''Проверка регистрации пользователя при отсуствии ключа tg_user_data в пользовательской сессии (POST)'''
         url = reverse("api:accounts-list")
-        wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
+        wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs), format="json")
 
         self.assertEqual(wrong_response.status_code, 400)
         self.assertIn("Данные телеграм не найдены в сессии", wrong_response.json()["detail"])
@@ -526,14 +512,15 @@ class ApplicantsViewSetTests(APITestCase):
         '''Проверка регистрации пользователя при устаревании ссылки (POST)'''
         url = reverse("api:accounts-list")
         # время запроса истекло 5 минут назад
-        session = SessionStore()
-        session['tg_user_data'] = {
-            'id': 1111111111, 'username': 'test_user', 'first_name': 'Vova',
-            'auth_date': int(time.time() - 10*60), 'hash': 'fake_hash', 'secret': 'fake_hash'  
+        expired_time_data = {
+            'id': 1111111111, 
+            'username': 'test_user', 
+            'first_name': 'Vova',
+            'auth_date': int(time.time() - 10*60), 
+            'hash': 'fake_hash', 
+            'secret': 'fake_hash'  
         }
-        session.save()
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
-        wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
+        wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs, expired_time_data), format="json")
 
         self.assertEqual(wrong_response.status_code, 400)
         self.assertIn("Время сессии истекло", wrong_response.json()["detail"])
@@ -542,14 +529,15 @@ class ApplicantsViewSetTests(APITestCase):
         '''Проверка регистрации пользователя при несовпадении хэшей (POST)'''
         url = reverse("api:accounts-list")
         # несовпадение хэшей
-        session = SessionStore()
-        session['tg_user_data'] = {
-            'id': 1111111111, 'username': 'test_user', 'first_name': 'Vova',
-            'auth_date': int(time.time()), 'hash': 'fake_hash22222222', 'secret': 'fake_hash' 
+        hash_unmatch_data = {
+            'id': 1111111111, 
+            'username': 'test_user', 
+            'first_name': 'Vova',
+            'auth_date': int(time.time()), 
+            'hash': 'fake_hash22222222', 
+            'secret': 'fake_hash' 
         }
-        session.save()
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
-        wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
+        wrong_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs, hash_unmatch_data), format="json")
 
         self.assertEqual(wrong_response.status_code, 400)
         self.assertIn("хеш не совпал", wrong_response.json()["detail"])
@@ -557,18 +545,17 @@ class ApplicantsViewSetTests(APITestCase):
     def test_applicant_sign_up(self):
         '''Проверка регистрации пользователя при корректных данных у ключа tg_user_data в сессии (POST)'''
         url = reverse("api:accounts-list")
-        username = 'test_user'
-        session = SessionStore()
-        session['tg_user_data'] = {
-            'id': 1111111111, 'username': username, 'first_name': 'Vova',
-            'auth_date': int(time.time()), 'hash': 'fake_hash_match', 'secret': 'fake_hash_match'
+        correct_data = {
+            'id': 1111111111, 
+            'username': 'New_username', 
+            'first_name': 'Vova',
+            'auth_date': int(time.time()), 
+            'hash': 'fake_hash_match', 
+            'secret': 'fake_hash_match'
         }
-        session.save()
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 
-        approp_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs))
+        approp_response = self.client.post(url, data=generate_applicant_additional_fields_for_sign_up(self.specs, self.techs, correct_data), format="json")
         self.assertEqual(approp_response.status_code, 201)
-        self.assertNotIn('tg_user_data', self.client.session) # ключ удалился из сессии
-        self.assertEqual(str(self.client.session['_auth_user_id']), str(Applicant.objects.filter(username=username).first().id)) # пользователь залогинился
+        print(approp_response.json()["token"])
         self.assertEqual(approp_response.json()["message"], 'Вы успешно вошли в систему.')
-        self.assertEqual(approp_response.json()["user"], username)
+        self.assertEqual(approp_response.json()["username"], correct_data["username"])

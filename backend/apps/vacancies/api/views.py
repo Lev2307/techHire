@@ -4,14 +4,14 @@ from django.db.models.expressions import RawSQL
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from apps.accounts.models import Applicant
 from apps.accounts.api.permissions import IsInternalBot
 from ..api_utils import get_vacancies_from_combined_api_sources, get_hh_vacancy_data_from_api, get_superjob_vacancy_data_from_api
 from ..helpers import create_vacancy_instance
-from ..models import Vacancy, SearchHistory, WorkFormat, INITIAL_SOURCES
+from ..models import Vacancy, SearchHistory, INITIAL_SOURCES
 from ..recommendations.base import get_recommended_vacancies_by_content
 from .serializers import VacancySerializer
 
@@ -37,14 +37,14 @@ class VacanciesViewset(ModelViewSet):
     
     def retrieve(self, request, pk=None):
         fav_vacancy = get_object_or_404(self.model, pk=pk)
-        if fav_vacancy.user != self.request.user:
+        if fav_vacancy.user != request.user:
             return Response({"detail": "Только пользователь, добавивший вакансию в избранное, имеет к ней доступ."}, status=status.HTTP_403_FORBIDDEN)
         serializer = self.get_serializer(fav_vacancy)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(methods=['get'], url_path="recommendations", url_name="recommendations", detail=False)
     def recommendations(self, request, *args, **kwargs):
-        recommendations_data = get_recommended_vacancies_by_content(user=self.request.user)
+        recommendations_data = get_recommended_vacancies_by_content(user=request.user)
         return Response(recommendations_data, status=status.HTTP_200_OK)
 
     @action(methods=['post'], url_path='search', url_name='search', detail=False)
@@ -53,10 +53,10 @@ class VacanciesViewset(ModelViewSet):
         payment_from = request.data.get('payment_from', '')
         payment_from = int(payment_from) if payment_from else 0
         if query:
-            city_ru_format = Applicant.objects.get(username=self.request.user.username).get_city_display()
+            city_ru_format = Applicant.objects.get(username=request.user.username).get_city_display()
             founded_vacancies_by_q = get_vacancies_from_combined_api_sources(city_ru_format, query, payment_from) # найденные вакансии, исходя из города соискателя и его запросов
-            if not SearchHistory.objects.filter(user=self.request.user).annotate(is_match=RawSQL("search_query ILIKE '%%' || %s || '%%'", [query])).filter(is_match=True).exists() and len(founded_vacancies_by_q) > 0:
-                SearchHistory.objects.create(user=self.request.user, search_query=query, results=len(founded_vacancies_by_q)) # создаёт Модель SearchHistory
+            if not SearchHistory.objects.filter(user=request.user).annotate(is_match=RawSQL("search_query ILIKE '%%' || %s || '%%'", [query])).filter(is_match=True).exists() and len(founded_vacancies_by_q) > 0:
+                SearchHistory.objects.create(user=request.user, search_query=query, results=len(founded_vacancies_by_q)) # создаёт Модель SearchHistory
             return Response({"vacancies": founded_vacancies_by_q, "results_amount": len(founded_vacancies_by_q)}, status=status.HTTP_200_OK)
         return Response({"detail": "Неправильный запрос."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -74,13 +74,13 @@ class VacanciesViewset(ModelViewSet):
                 vacancy_info = get_hh_vacancy_data_from_api(external_id)
 
             if vacancy_info:
-                if self.model.objects.filter(user=self.request.user).count() < 5: # Ограничение на добавление вакансий в избранное - 5 штук
-                    fav_vacancy_instance = create_vacancy_instance(self.request.user, vacancy_info)
+                if self.model.objects.filter(user=request.user).count() < 5: # Ограничение на добавление вакансий в избранное - 5 штук
+                    fav_vacancy_instance = create_vacancy_instance(request.user, vacancy_info)
                     serializer = self.get_serializer(fav_vacancy_instance)
                 else:
-                    applicant = Applicant.objects.get(username=self.request.user.username)
+                    applicant = Applicant.objects.get(username=request.user.username)
                     if applicant.is_sub:
-                        fav_vacancy_instance = create_vacancy_instance(self.request.user, vacancy_info)
+                        fav_vacancy_instance = create_vacancy_instance(request.user, vacancy_info)
                         serializer = self.get_serializer(fav_vacancy_instance)
                     else:
                         return Response({"detail": "Ограничение на добавление вакансий в избранное. Станьте сабом, чтобы иметь больше возможностей!"}, status=status.HTTP_403_FORBIDDEN)

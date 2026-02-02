@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'rest_framework',
+    'rest_framework.authtoken',
 
     'apps.accounts',
     'apps.vacancies',
@@ -117,9 +118,9 @@ USE_TZ = True
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
-    ]
+    ],
 }
 
 
@@ -187,8 +188,8 @@ TELEGRAM_ID_FOR_TESTS = os.environ.get("TELEGRAM_ID_FOR_TESTS")
 # 3. Делаю логин через тг (all-auth) + после логина добавляю привязку специальностей и инструментов с почтой. ✅
 # 4. Добавление собственных инструментов к себе на аккаунт + /accounts/profile (страница настроек пользователя + изменение их) ✅
 # 5. 3+4 в тесты ✅
-# 6. Создание api
-# 7. Тесты api
-# 8. Уведы в тг при появлении новой вакансии в рекомендациях
+# 6. Создание api ✅
+# 7. Тесты api ✅
+# 8. Уведы в тг при появлении новой вакансии в рекомендациях ✅
 # 9. Создание укороченного функционала в тг (профиль, избранные вакансии)
 # 10. Конец бэкэнда!!!!!

@@ -8,12 +8,13 @@ from django.contrib.auth import login
 
 from rest_framework import status
 from rest_framework import viewsets
+from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 from config import settings
-from .serializers import ApplicantSerializer, TechnologySerializer
+from .serializers import ApplicantSerializer, ApplicantFullSerializer, TechnologySerializer, ApplicantLinkedTelegramSerializer
 from .permissions import IsInternalBot
 from ..models import Applicant, ApplicantLinkedTelegram, Technology
 from ..tasks import send_telegram_message
@@ -27,7 +28,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             permission_classes = []
         elif self.action in ['list', 'retrieve', 'pending_technologies_list', 'moderate_technology']: # permissions доступные только админам
             permission_classes = [IsAdminUser]
-        elif self.action in ['by_telegram']: # permissions для доступа боту
+        elif self.action in ['by_telegram', 'linked_telegram_info']: # permissions для доступа боту
             permission_classes = [IsInternalBot]
         elif self.action in ['applicant_created_technologies_list']: # permission для авторизованных пользователей или для бота
             permission_classes = [IsAuthenticated | IsInternalBot]
@@ -46,11 +47,11 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         instance = serializer.save()
-        login(self.request, instance)
-        del self.request.session['tg_user_data'] # удаление ключа с тгшной инфой из сессии
+        token = Token.objects.create(user=instance)
+        return token
 
     def create(self, request, *args, **kwargs):
-        user_data = self.request.session.get('tg_user_data')
+        user_data = request.data.get('tg_user_data')
         if not user_data:
             return Response({"detail": "Данные телеграм не найдены в сессии."}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -65,9 +66,17 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             context={'tg_user_data': user_data}
         )
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        token = self.perform_create(serializer)
 
-        return Response({'message': 'Вы успешно вошли в систему.', "user": serializer.data["username"]}, status=status.HTTP_201_CREATED)
+        telega = get_object_or_404(ApplicantLinkedTelegram, user_id=user_data.get('id')) # сохраняю токен в модель привязанного соискателем телеграма 
+        telega.auth_token = token.key
+        telega.save()
+
+        return Response({
+            'message': 'Вы успешно вошли в систему.', 
+            "token": token.key,
+            "username": serializer.data["username"]
+        }, status=status.HTTP_201_CREATED)
     
     @action(methods=["GET"], url_path="telegram-auth", url_name="telegram_auth", detail=False)
     def telegram_auth(self, request, *args, **kwargs):
@@ -90,29 +99,41 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             'secret': secret,
             'hash': hash
         }
-        request.session['tg_user_data'] = user_data
         telega = ApplicantLinkedTelegram.objects.filter(user_id=user_data["id"]).first()
         if telega:
             user = get_object_or_404(Applicant, linked_telegram=telega)
-            login(request, user)
-            del request.session['tg_user_data']
-            return Response({"message": "Успешный вход в систему.", "user": user.username}, status=status.HTTP_200_OK)
+            token, created = Token.objects.get_or_create(user=user)
+
+            if created: # если токен создался заново, то перезаписываю его в бд
+                telega.auth_token = token.key
+                telega.save()
+            return Response({
+                "message": "Успешный вход в систему.", 
+                "token": token.key,
+                "username": user.username,
+            }, 
+            status=status.HTTP_200_OK)
         
         return Response({
             "status": "register",
             "message": "Аккаунт не найден, пожалуйста, завершите регистрацию.",
-            "tg_user_data": user_data
+            "tg_user_data": user_data,
         }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path="logout", url_name='logout')
+    def logout(self, request, *args, **kwargs):
+        request.user.auth_token.delete() # Удаляем токен из бд
+        return Response({"message": "Успешный выход из системы"})
 
     @action(detail=False, methods=['get', 'patch', 'put'], url_path='me', url_name='me')
     def me(self, request):
-        applicant = get_object_or_404(Applicant, username=request.user.username)
+        applicant = request.user
         
         if request.method == 'GET':
             serializer = self.get_serializer(applicant) 
             return Response(serializer.data)
         
-        serializer = self.get_serializer(applicant, data=request.data, partial=True, user=request.user)
+        serializer = self.get_serializer(applicant, data=request.data, partial=True, user=applicant)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -188,6 +209,16 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     
     @action(methods=['get'], url_path='by-telegram/(?P<tg_id>[^/.]+)', url_name="by_telegram", detail=False)
     def by_telegram(self, request, tg_id=None):
-        applicant = get_object_or_404(Applicant, linked_telegram__user_id=tg_id)
-        serializer = self.get_serializer(applicant)
+        applicant = get_object_or_404(self.queryset, linked_telegram__user_id=tg_id)
+        serializer = ApplicantFullSerializer(applicant)
         return Response(serializer.data)
+    
+    @action(methods=['get', 'patch'], url_path='linked-telegram-info/(?P<tg_id>[^/.]+)', url_name="linked_telegram_info", detail=False)
+    def linked_telegram_info(self, request, tg_id=None):
+        linked_telegram = get_object_or_404(ApplicantLinkedTelegram, user_id=tg_id)
+        if request.method == "GET":
+            serializer = ApplicantLinkedTelegramSerializer(linked_telegram)
+            return Response(serializer.data)
+        
+        linked_telegram.auth_token = "" # делаю токен пустым, поскольку появилась ошибка 401 при попытке сделать запрос, когда токен (drf) был удалён из базы
+        linked_telegram.save()

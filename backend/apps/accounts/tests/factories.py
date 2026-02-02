@@ -11,10 +11,11 @@ def generate_hash_for_tests(data: dict):
     new_hash = hmac.new(secret_key, check_string.encode(), hashlib.sha256).hexdigest()
     return new_hash
 
-def generate_applicant_additional_fields_for_sign_up(specs: list, techs: list):
+def generate_applicant_additional_fields_for_sign_up(specs: list, techs: list, tg_user_data={}):
     return {
         'city': "Moscow",
         'specializations': [specs[0], specs[4]],
         'technologies': [techs[3], techs[5], techs[7]],
-        'preferred_work_formats': [WorkFormat.objects.get(name_eng='ON_SITE').id]
+        'preferred_work_formats': [WorkFormat.objects.get(name_eng='ON_SITE').id],
+        "tg_user_data": tg_user_data
     }
