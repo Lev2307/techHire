@@ -11,4 +11,4 @@ class VacancySerializer(serializers.ModelSerializer):
 class WorkFormatsSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkFormat
-        fields = ["name"]
+        fields = "__all__"

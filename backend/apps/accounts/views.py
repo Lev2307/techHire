@@ -160,9 +160,9 @@ def sign_up_view(request):
                 form.save_m2m()
 
                 login(request, applicant)
-                token = Token.objects.create(user=applicant)
-                linked_telega.auth_token = token.key
-                linked_telega.save()
+                # token = Token.objects.create(user=applicant)
+                # linked_telega.auth_token = token.key
+                # linked_telega.save()
 
                 del request.session['tg_user_data']
                 return HttpResponseRedirect(reverse('accounts:profile'))

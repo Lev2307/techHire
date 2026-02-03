@@ -5,24 +5,52 @@ TELEGRAM_HEADERS = {
     "X-Internal-Token": os.environ.get("TELEGRAM_BOT_TOKEN"),
 }
 
-async def get_applicant_info_by_telegram_id(user_id: int):
-    '''Получение информации о соискателе, исходя из привязанного тг, в человекочитаемом формате (GET)'''
+async def toggle_specialization_name(spec_id: str):
+    '''Получение названия специализации через её id'''
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(f"http://backend:8000/api/accounts/by-telegram/{user_id}", headers=TELEGRAM_HEADERS)
+            response = await client.get(f"http://backend:8000/api/accounts/specializations/{spec_id}", headers=TELEGRAM_HEADERS)
             if response.status_code == 200:
-                applicant_data = response.json()
-                return applicant_data
+                return response.json()["name"]
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def toggle_technology_name(tech_id: str):
+    '''Получение названия технологии через её id'''
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"http://backend:8000/api/accounts/technologies/{tech_id}", headers=TELEGRAM_HEADERS)
+            if response.status_code == 200:
+                return response.json()["name"]
         except Exception as e:
             print(f"Ошибка связи с API: {e}")
 
 async def get_applicant_auth_token(user_id: int):
+    '''Получает токен пользователя для использования api экшенов, требующих авторизацию'''
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
             if response.status_code == 200:
-                token = response.json()
-                return token
+                auth_token_data = response.json()
+                return auth_token_data.get('auth_token')
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_applicant_info_by_telegram_id(token_key: str, user_id: int):
+    '''Получение информации о соискателе, исходя из привязанного тг, в человекочитаемом формате (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.patch(f"http://backend:8000/api/accounts/by-telegram", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS) # стираю токен с бд
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
         except Exception as e:
             print(f"Ошибка связи с API: {e}")
         
@@ -39,6 +67,150 @@ async def edit_applicant_profile(data: dict, token_key: str, user_id: int):
                 return True, response.json()
             elif response.status_code == 401:
                 await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS) # стираю токен с бд
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_available_cities_with_applicant_option(token_key: str, user_id: int):
+    '''Получение всех использующихся городов в сервисе + помечание города, который выбрал пользователь (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/all-available-cities-info", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_available_experience_choices_with_applicant_option(token_key: str, user_id: int):
+    '''Получение всех использующихся видов опыта работы + помечание опыта, который выбрал пользователь (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/all-available-experience-info", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_available_work_formats_with_applicant_options(token_key: str, user_id: int):
+    '''Получение всех использующихся видов формата работы + помечание формата(-ов), который выбрал пользователь (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/all-available-work-formats-info", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_applicant_selected_work_formats_ids(token_key: str, user_id: int):
+    '''Получение списка айдишек всех выбранных форматов работы пользователем (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/list-applicant-work-formats-ids", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_available_specializations_with_applicant_options(token_key: str, user_id: int):
+    '''Получение всех использующихся видов специализаций + помечание специализаций, выбранных пользователем'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/all-available-specializations-info", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_applicant_selected_specializations_ids(token_key: str, user_id: int):
+    '''Получение списка айдишек всех выбранных специализаций пользователем (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/list-applicant-specializations-ids", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_technologies_by_query(data: dict, token_key: str, user_id: int):
+    '''Получение списка технологий, исходя из параметра query - пользовательского ввода (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/technologies-list-by-query", params=data, headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_all_applicant_selected_technologies_ids(token_key: str, user_id: int):
+    '''Получение списка айдишек всех выбранных технологий пользователем (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/accounts/list-applicant-technologies-ids", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
                 return False, {"error": "unauthorized", "detail": response.json()["detail"]}
             return False, response.json()
         except Exception as e:

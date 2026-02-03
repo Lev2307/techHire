@@ -10,7 +10,7 @@ from ..models import Applicant, ApplicantLinkedTelegram, Technology, Specializat
 class SpecializationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Specialization
-        fields = ["name"]
+        fields = "__all__"
 
 class TechnologySerializer(serializers.ModelSerializer):
     class Meta:
