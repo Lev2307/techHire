@@ -80,9 +80,9 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
             "username": serializer.data["username"]
         }, status=status.HTTP_201_CREATED)
     
-    @action(methods=["get"], url_path="telegram-auth", url_name="telegram_auth", detail=False)
+    @action(methods=["post"], url_path="telegram-auth", url_name="telegram_auth", detail=False)
     def telegram_auth(self, request, *args, **kwargs):
-        data = request.query_params
+        data = request.data
         if time.time() - int(data.get('auth_date', 0)) > 300:
             return Response({"detail": "Время сессии истекло"}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -125,7 +125,7 @@ class ApplicantsViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path="logout", url_name='logout')
     def logout(self, request, *args, **kwargs):
         request.user.auth_token.delete() # Удаляем токен из бд
-        return Response({"message": "Успешный выход из системы"})
+        return Response({"message": "Успешный выход из системы."})
 
     @action(detail=False, methods=['get', 'patch', 'put'], url_path='me', url_name='me')
     def me(self, request):

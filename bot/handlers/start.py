@@ -12,13 +12,13 @@ async def start(message: Message, dispatcher: Dispatcher):
     connection_to_db = dispatcher["conn"]
     applicant_telegram = get_applicant_telegram(connection_to_db, message.from_user.id)
     if applicant_telegram:
-        if applicant_telegram[-1] == False: # тг не привязано
+        if applicant_telegram[-2] == False: # тг не привязано
             activate_applicant_linked_telegram(connection_to_db, message.from_user.id, message.chat.id)
             await message.answer(f'Вы успешно привязали телеграм-бота к аккаунту Techhire! Я - TechHire бот🤖. Чем могу помочь?', reply_markup=start_inline_kbs())
         else: # Пользователь уже привязал тг
             await message.answer(f'🏠 Главное меню', reply_markup=start_inline_kbs())
     else:
-        await message.answer('Брад, ты ещё не создал аккаунт в сервисе TechHire!')
+        await message.answer('Для использования телеграм-бота сначала нужно создать учётную запись в Techhire!')
 
 @start_router.callback_query(F.data == 'go_to_start')
 async def go_to_start(callback_query: CallbackQuery):

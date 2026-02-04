@@ -44,7 +44,7 @@ async def get_applicant_info_by_telegram_id(token_key: str, user_id: int):
     }
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.patch(f"http://backend:8000/api/accounts/by-telegram", headers=auth_headers)
+            response = await client.get(f"http://backend:8000/api/accounts/by-telegram", headers=auth_headers)
             if response.status_code == 200:
                 return True, response.json()
             elif response.status_code == 401:
@@ -212,6 +212,34 @@ async def get_all_applicant_selected_technologies_ids(token_key: str, user_id: i
             elif response.status_code == 401:
                 await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
                 return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def login(data: dict):
+    '''Вход в аккаунт Techhire через телеграм-бота (POST)'''
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post("http://backend:8000/api/accounts/telegram-auth", json=data)
+            response_data = response.json()
+            if response.status_code == 200:
+                if response_data.get('token', ''):
+                    return True, response_data
+            return False, response_data
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def logout(token_key: str):
+    '''Выход из аккаунта Techhire через телеграм-бота (POST)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json",
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.post("http://backend:8000/api/accounts/logout", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
             return False, response.json()
         except Exception as e:
             print(f"Ошибка связи с API: {e}")

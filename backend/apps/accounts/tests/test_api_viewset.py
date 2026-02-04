@@ -441,20 +441,20 @@ class ApplicantsViewSetTests(APITestCase):
     #     self.assertEqual(Technology.objects.filter(creator=self.applicant).first().is_approved, True)
 
     def test_telegram_auth_request_with_link_time_expired(self):
-        '''Проверка вывода ошибки запроса при устаревании ссылки (GET)'''
+        '''Проверка вывода ошибки запроса при устаревании ссылки (POST)'''
         url = reverse('api:accounts-telegram_auth')
         #wrong data
         data_with_expired_time = {
             'auth_date': int(time.time() - 10*60),
             'hash': 'blblblbllblblb'
         }
-        wrong_response = self.client.get(url, data=data_with_expired_time)
+        wrong_response = self.client.post(url, data=data_with_expired_time)
 
         self.assertEqual(wrong_response.status_code, 401)
         self.assertIn("Время сессии истекло", wrong_response.json()["detail"])
 
     def test_telegram_auth_request_invalid_hash(self):
-        '''Проверка вывода ошибки запроса при несовпадении хэшей (GET)'''
+        '''Проверка вывода ошибки запроса при несовпадении хэшей (POST)'''
         url = reverse('api:accounts-telegram_auth')
         wrong_data = {
             'id': '111111111',
@@ -463,13 +463,13 @@ class ApplicantsViewSetTests(APITestCase):
             'hash': 'qazwsx1234rffv-123sx',
             'auth_date': int(time.time())
         }
-        wrong_response = self.client.get(url, data=wrong_data)
+        wrong_response = self.client.post(url, data=wrong_data)
 
         self.assertEqual(wrong_response.status_code, 400)
         self.assertIn("хеш не совпал", wrong_response.json()["detail"])
     
     def test_telegram_auth_with_already_sign_up_applicant(self):
-        '''Проверка логина пользователя, который уже регистрировался (GET)'''
+        '''Проверка логина пользователя, который уже регистрировался (POST)'''
         url = reverse('api:accounts-telegram_auth')
         applicant_in_db_data = {
             'id': TELEGRAM_ID_FOR_TESTS,
@@ -478,14 +478,14 @@ class ApplicantsViewSetTests(APITestCase):
             'auth_date': int(time.time())
         }
         applicant_in_db_data["hash"] = generate_hash_for_tests(applicant_in_db_data)
-        applicant_in_db_response = self.client.get(url, data=applicant_in_db_data)
+        applicant_in_db_response = self.client.post(url, data=applicant_in_db_data)
         self.assertEqual(applicant_in_db_response.status_code, 200)
         self.assertEqual(applicant_in_db_response.json()["message"], "Успешный вход в систему.")
         self.assertEqual(applicant_in_db_response.json()["username"], self.applicant.username)
         self.assertEqual(applicant_in_db_response.json()["token"], self.applicant_token.key)
 
     def test_telegram_auth_for_new_applicant(self):
-        '''Проверка логина пользователя, который до этого не регистрировался в системе (GET)'''
+        '''Проверка логина пользователя, который до этого не регистрировался в системе (POST)'''
         url = reverse('api:accounts-telegram_auth')
         applicant_not_in_db_data = {
             'id': '1111111111',
@@ -494,7 +494,7 @@ class ApplicantsViewSetTests(APITestCase):
             'auth_date': int(time.time())
         }
         applicant_not_in_db_data["hash"] = generate_hash_for_tests(applicant_not_in_db_data)
-        applicant_not_in_db_response = self.client.get(url, data=applicant_not_in_db_data)
+        applicant_not_in_db_response = self.client.post(url, data=applicant_not_in_db_data)
 
         self.assertEqual(applicant_not_in_db_response.status_code, 200)
         self.assertEqual(applicant_not_in_db_response.json()["message"], "Аккаунт не найден, пожалуйста, завершите регистрацию.")

@@ -11,12 +11,17 @@ from handlers.profile import profile_router
 from handlers.start import start_router
 from db.database import create_connection
 
+TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+PROXY_URL = os.environ.get('PROXY')
+
 async def main():
+
     dp_connection = create_connection()
-    session = AiohttpSession(proxy=os.environ.get('PROXY'))
-    bot = Bot(token=os.environ.get('TELEGRAM_BOT_TOKEN'), session=session)
+    session = AiohttpSession(proxy=PROXY_URL)
+    bot = Bot(token=TOKEN, session=session)
     dp = Dispatcher()
     dp["conn"] = dp_connection
+    dp["telegram_bot_token"] = TOKEN
 
     dp.include_routers(auth_router, profile_router, start_router)
 

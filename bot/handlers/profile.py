@@ -1,5 +1,3 @@
-from typing import Union
-
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -21,7 +19,6 @@ from api_handlers.handlers import (
     get_all_applicant_selected_technologies_ids
 )
 from keyboards.inline_keyboards import (
-    login_inline_kbs,
     profile_inline_kbs, 
     edit_profile_inline_kbs, 
     edit_city_inline_kbs, 
@@ -32,6 +29,7 @@ from keyboards.inline_keyboards import (
     edit_applicant_technologies_inline_kbs,
     go_back_to_editing_profile_or_stop_search_inline_kbs
 )
+from handlers.auth import handle_api_unauthorized_error
 
 profile_router = Router()
 
@@ -41,25 +39,6 @@ class FirstNameState(StatesGroup):
 class TechnologyState(StatesGroup):
     typing_tech = State()
 
-async def handle_api_unauthorized_error(event: Union[CallbackQuery, Message], result):
-    """Централизованная обработка ошибки авторизации 401 API для всех хендлеров профиля"""
-    if result.get("error") == "unauthorized":
-        error_text = "⚠️ <b>Сессия истекла</b>\nДля безопасности мы завершили ваш сеанс. Пожалуйста, авторизуйтесь заново."
-        if isinstance(event, CallbackQuery):
-            await event.message.edit_text(
-                error_text,
-                parse_mode="html",
-                reply_markup=login_inline_kbs()
-            )
-            await event.answer()
-        elif isinstance(event, Message):
-            await event.edit_text(
-                error_text,
-                parse_mode="html",
-                reply_markup=login_inline_kbs()
-            )
-        return True
-    return False
 
 @profile_router.callback_query(F.data == 'profile')
 async def profile_info(callback_query: CallbackQuery):

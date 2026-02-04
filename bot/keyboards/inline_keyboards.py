@@ -1,9 +1,6 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-def login_inline_keyboard():
-    pass
-
-def start_inline_kbs():
+def start_inline_kbs(require_logout=True):
     builder = InlineKeyboardBuilder()
     builder.button(text="⚙️ Настройки", callback_data="profile")
     return builder.as_markup()
@@ -12,6 +9,7 @@ def profile_inline_kbs():
     builder = InlineKeyboardBuilder()
     builder.button(text="🏠 Вернуться в главную", callback_data="go_to_start")
     builder.button(text="✏️ Редактировать профиль", callback_data="edit_profile_start_message")
+    builder.button(text="🚫 Выйти из аккаунта", callback_data="logout")
     return builder.as_markup()
 
 def edit_profile_inline_kbs(applicant_data):
@@ -104,4 +102,9 @@ def go_back_to_editing_profile_or_stop_search_inline_kbs():
 def login_inline_kbs():
     builder = InlineKeyboardBuilder()
     builder.button(text='🔓 Повторная авторизация', callback_data="re-authorization")
+    return builder.as_markup()
+
+def failed_login_inline_kbs():
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔙 Назад", callback_data="go_to_start")
     return builder.as_markup()
