@@ -36,9 +36,9 @@ def parse_vacancy_superjob_data(superjob_vacancy_data: dict, parsed_options: dic
     return {
         'external_id': str(superjob_vacancy_data["id"]),
         'title': superjob_vacancy_data["profession"],
-        'duties': parsed_options["duties"] if parsed_options["duties"] != [] else NOT_FOUND_DUTIES,
-        'requirements': parsed_options["requirements"] if parsed_options["requirements"] != [] else NOT_FOUND_REQS,
-        'working_conditions': parsed_options["working_conditions"] if parsed_options["working_conditions"] != [] else NOT_FOUND_WORK_COND,
+        'duties': parsed_options["duties"] if parsed_options["duties"] != [] else [NOT_FOUND_DUTIES],
+        'requirements': parsed_options["requirements"] if parsed_options["requirements"] != [] else [NOT_FOUND_REQS],
+        'working_conditions': parsed_options["working_conditions"] if parsed_options["working_conditions"] != [] else [NOT_FOUND_WORK_COND],
         'payment': {
             'payment_from': superjob_vacancy_data["payment_from"],
             'payment_to': superjob_vacancy_data["payment_to"],
@@ -116,7 +116,7 @@ def get_superjob_vacancy_data_from_api(external_id: str) -> dict:
 
         returned_data = parse_vacancy_superjob_data(data, parsed_text)
         # Делаю каждый раздел из одной большой строки в список критериев, разделенных ;
-        returned_data["duties"] = "; ".join(returned_data["duties"])
+        returned_data["duties"] = "; ".join(returned_data["duties"]) 
         returned_data["requirements"] = "; ".join(returned_data["requirements"])
         returned_data["working_conditions"] = "; ".join(returned_data["working_conditions"])
 

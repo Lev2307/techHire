@@ -83,8 +83,10 @@ def filter_vacancies_by_similarity(
 
 def get_recommended_vacancies_by_content(user: Applicant, for_auto_updating_vacancies=False) -> list:
     '''Генерирует вакансии на основе алгоритма контентной фильтрации'''
+    favourites = Vacancy.objects.filter(user=user)
     applicant_data = get_applicant_criterias_for_filtering_vacancies(user)
-    applicant_fav_vacancies_data = get_applicant_favourite_vacancies_info_for_filtering_vacancies(Vacancy.objects.filter(user=user))
+    applicant_fav_vacancies_data = get_applicant_favourite_vacancies_info_for_filtering_vacancies(favourites)
+    applicant_fav_vacancies_ids = [str(i.external_id) for i in favourites]
     applicant_search_histories = get_applicant_search_history_info_for_filtering_vacancies(SearchHistory.objects.filter(user=user))
     all_latest_it_vacancies = cache.get(f"STORED_VACANCIES_FOR_RECOMMENDATIONS_CITY_{user.get_city_display()}", [])# получение вакансий для города, который выбрал пользователь
     all_latest_it_vacancies = [d for d in all_latest_it_vacancies if d] # отброс всех пустых вакансий (т.е [])
@@ -93,7 +95,9 @@ def get_recommended_vacancies_by_content(user: Applicant, for_auto_updating_vaca
             all_latest_it_vacancies.remove(vac)
         if vac["is_added_to_favorites"] == True:
             all_latest_it_vacancies.remove(vac)
-
+        if vac["external_id"] in applicant_fav_vacancies_ids:
+            all_latest_it_vacancies.remove(vac)
+            
     if all_latest_it_vacancies:
         filtered_vacancies = filter_vacancies_by_similarity(
             all_latest_it_vacancies, 

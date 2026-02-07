@@ -13,18 +13,12 @@ from ..api_utils import get_vacancies_from_combined_api_sources, get_hh_vacancy_
 from ..helpers import create_vacancy_instance
 from ..models import Vacancy, SearchHistory, INITIAL_SOURCES
 from ..recommendations.base import get_recommended_vacancies_by_content
-from .serializers import VacancySerializer
+from .serializers import VacancySerializer, WorkFormatsSerializer
 
 class VacanciesViewset(ModelViewSet):
     model = Vacancy
     serializer_class = VacancySerializer
-
-    def get_permissions(self):
-        if self.action in ['retrieve', 'recommendations', 'search', 'add_to_favourites']:
-            permission_classes = [IsAuthenticated]
-        elif self.action in ['favourites', 'remove_from_favourites']:
-            permission_classes = [IsAuthenticated | IsInternalBot]
-        return [permission() for permission in permission_classes]
+    permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         return self.model.objects.filter(user=self.request.user)
@@ -32,7 +26,7 @@ class VacanciesViewset(ModelViewSet):
     @action(methods=['get'], url_path="favourites", url_name="favourites", detail=False)
     def favourites(self, request, *args, **kwargs):
         '''Список ИЗБРАННЫХ вакансий пользователя'''
-        serializer = self.get_serializer(self.get_queryset(), many=True)
+        serializer = self.get_serializer(self.get_queryset().filter(is_archived=False), many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     def retrieve(self, request, pk=None):
@@ -91,5 +85,13 @@ class VacanciesViewset(ModelViewSet):
     @action(methods=['delete'], url_path="remove-from-favourites", url_name="remove_from_favourites", detail=True)
     def remove_from_favourites(self, request, pk=None):
         obj = get_object_or_404(self.get_queryset(), pk=pk)
+        title = obj.title
         obj.delete()
-        return Response({"message": "Успешное удаление вакансии из избранного."}, status=status.HTTP_200_OK)
+        return Response({"message": f"Успешное удаление вакансии: `{title}` из избранного."}, status=status.HTTP_200_OK)
+    
+    @action(methods=['get'], url_path="work-formats-names", url_name="get_favourite_vacancy_work_formats_names", detail=True)
+    def get_favourite_vacancy_work_formats_names(self, request, pk=None):
+        fav_vacancy = get_object_or_404(self.get_queryset(), pk=pk)
+        serializer = WorkFormatsSerializer(fav_vacancy.work_formats, many=True)
+        work_formats = [i.get('name') for i in serializer.data]
+        return Response(work_formats, status=status.HTTP_200_OK)

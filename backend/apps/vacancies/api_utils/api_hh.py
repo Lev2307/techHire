@@ -25,9 +25,9 @@ def parse_vacancy_hh_data(hh_vacancy_data: dict, parsed_options: dict) -> dict:
     return {
         'external_id': hh_vacancy_data["id"],
         'title': hh_vacancy_data["name"],
-        'duties': parsed_options["duties"] if parsed_options["duties"] != [] else NOT_FOUND_DUTIES,
-        'requirements': parsed_options["requirements"] if parsed_options["requirements"] != [] else NOT_FOUND_REQS,
-        'working_conditions': parsed_options["working_conditions"] if parsed_options["working_conditions"] != [] else NOT_FOUND_WORK_COND,
+        'duties': parsed_options["duties"] if parsed_options["duties"] != [] else [NOT_FOUND_DUTIES],
+        'requirements': parsed_options["requirements"] if parsed_options["requirements"] != [] else [NOT_FOUND_REQS],
+        'working_conditions': parsed_options["working_conditions"] if parsed_options["working_conditions"] != [] else [NOT_FOUND_WORK_COND],
         'payment': {
             'payment_from': payment_from,
             'payment_to': payment_to,
@@ -146,8 +146,8 @@ def get_hh_vacancy_data_from_api(external_id: str) -> dict:
 
         returned_data = parse_vacancy_hh_data(data, parsed_text)
         # Делаю каждый раздел из одной большой строки в список критериев, разделенных ;
-        returned_data["duties"] = "; ".join(returned_data["duties"])
-        returned_data["requirements"] = "; ".join(returned_data["requirements"])
+        returned_data["duties"] = "; ".join(returned_data["duties"]) 
+        returned_data["requirements"] = "; ".join(returned_data["requirements"]) 
         returned_data["working_conditions"] = "; ".join(returned_data["working_conditions"])
 
         # Добавляю доп данные о вакансии в бд, которых нет в parse_vacancy_hh_data

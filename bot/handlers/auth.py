@@ -6,7 +6,7 @@ from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 
 from api_handlers.handlers import login, logout, get_applicant_auth_token
-from keyboards.inline_keyboards import login_inline_kbs, failed_login_inline_kbs, start_inline_kbs
+from keyboards.inline_keyboards import login_inline_kbs, go_back_inline_kbs, start_inline_kbs
 from utils.factories import generate_telegram_oauth_hash
 
 auth_router = Router()
@@ -47,7 +47,7 @@ async def re_authorization(callback_query: CallbackQuery, dispatcher: Dispatcher
     if successful_login:
         await callback_query.message.edit_text('✅ <b>Авторизация успешна!</b>\nВаша сессия обновлена.\nТеперь вы можете продолжить пользоваться функционалом бота!', reply_markup=start_inline_kbs(), parse_mode="html")
     else:
-        await callback_query.message.edit_text("Что-то пошло не так при попытке авторизации в сервисе Techhire! Попробуйте позднее...", reply_markup=failed_login_inline_kbs())
+        await callback_query.message.edit_text("Что-то пошло не так при попытке авторизации в сервисе Techhire! Попробуйте позднее...", reply_markup=go_back_inline_kbs())
 
 @auth_router.callback_query(F.data == "logout")
 async def logout_handler(callback_query: CallbackQuery, state: FSMContext):

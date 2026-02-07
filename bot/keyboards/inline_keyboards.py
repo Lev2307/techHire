@@ -1,8 +1,9 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-def start_inline_kbs(require_logout=True):
+def start_inline_kbs():
     builder = InlineKeyboardBuilder()
     builder.button(text="⚙️ Настройки", callback_data="profile")
+    builder.button(text="⭐ Избранные вакансии", callback_data="favourites_list")
     return builder.as_markup()
 
 def profile_inline_kbs():
@@ -104,7 +105,24 @@ def login_inline_kbs():
     builder.button(text='🔓 Повторная авторизация', callback_data="re-authorization")
     return builder.as_markup()
 
-def failed_login_inline_kbs():
+def go_back_inline_kbs():
     builder = InlineKeyboardBuilder()
     builder.button(text="🔙 Назад", callback_data="go_to_start")
+    return builder.as_markup()
+
+def favourite_vacancy_inline_kbs(respond_url: str, vac_id: str):
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text="🗑️ Удалить вакансию из избранного",
+        callback_data=f"remove_favourite_from_list:{vac_id}"
+    )
+    builder.button(
+        text="🌐 Полное описание вакансии на сайте",
+        url="http://127.0.0.1:8000/vacancies/favorites/" # при создании фронта буду перекидывать туда. Пока что перекидывает на бэк
+    )
+    builder.button(
+        text="💬 Откликнуться на вакансию",
+        url=respond_url
+    )
+    builder.adjust(1)
     return builder.as_markup()

@@ -243,3 +243,58 @@ async def logout(token_key: str):
             return False, response.json()
         except Exception as e:
             print(f"Ошибка связи с API: {e}")
+
+async def get_applicant_favourite_vacancies_list(token_key: str, user_id: int):
+    '''Получение списка избранных вакансий пользователя (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json"
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get("http://backend:8000/api/vacancies/favourites", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+async def get_favourite_vacancy_work_formats_names(vac_id: str, token_key: str, user_id: int):
+    '''Получение списка названий форматов работы избранной вакансии (GET)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json"
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(f"http://backend:8000/api/vacancies/{vac_id}/work-formats-names", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")
+
+#remove-from-favourites
+async def remove_vacancy_from_favourites(vac_id: str, token_key: str, user_id: int):
+    '''Удаление избранной вакансии (DELETE)'''
+    auth_headers = {
+        "Authorization": f"Token {token_key}",
+        "Content-Type": "application/json"
+    }
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.delete(f"http://backend:8000/api/vacancies/{vac_id}/remove-from-favourites", headers=auth_headers)
+            if response.status_code == 200:
+                return True, response.json()
+            elif response.status_code == 401:
+                await client.put(f"http://backend:8000/api/accounts/linked-telegram-info/{user_id}", headers=TELEGRAM_HEADERS)
+                return False, {"error": "unauthorized", "detail": response.json()["detail"]}
+            return False, response.json()
+        except Exception as e:
+            print(f"Ошибка связи с API: {e}")

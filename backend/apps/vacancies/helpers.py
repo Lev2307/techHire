@@ -52,7 +52,7 @@ SECTION_REQUIREMENTS_NAMES = (
     r'Обязанности искомого специалиста и ожидаемые результаты работы[?:]?[\n]|Мы ищем кандидата, который соответствует следующим требованиям[?:]?[\n]|Жд[её] от вас[?:]?[\n]|'
     r'Требования к backend-разработчику[?:]?[\n]|Мы подходим друг другу, если у вас есть[?:]?[\n]|Ваши ключевые навыки и опыт нам важны[?:]?[\n]|'
     r'Требуется понимание принципов ООП и владение следующими технологиями[?:]?[\n]|Требования к соискателю[?:]?[\n]|Также потребуются[?:]?[\n]|Мы ожидаем от кандидата[?:]?[\n]|Ожидаем от кандидата[?:]?[\n]|'
-    r'Ожидания:[\n]|Наши ожидания[?:]?[\n]|Что мы ожидаем от кандидата[?:]?[\n]|Ожидаем от тебя[?:]?[\n]|Мы ожидаем, что Вы[?:]?[\n]|Мы ожидаем,что у тебя есть опыт[?:]?[\n]|'
+    r'Ожидания:[\n]|Наши ожидания.*?[?:]?[\n]|Что мы ожидаем от кандидата[?:]?[\n]|Ожидаем от тебя[?:]?[\n]|Мы ожидаем, что Вы[?:]?[\n]|Мы ожидаем,что у тебя есть опыт[?:]?[\n]|'
     r'Наши ожидания от кандидата[?:]?[\n]|Чего мы ждем от специалиста[?:]?[\n]|Мы ожидаем.*?[?:]?[\n]|Ожидания .* от кандидата [(].*?[)][?:]?[\n]|Мы ожидаем уверенные знания[?:]?[\n]|'
     r'Что мы ожидаем.*?[?:]?[\n]|Что мы от тебя ожидаем[?:]?[\n]|Мы ожидаем, что ты.*?[?:]?[\n]|Что мы ожидаем от кандидата[?:]?[\n]|Что ожидаем от кандидата[?:]?[\n]|'
     r'Ожидания .* от кандидата[?:]?[\n]|Нам важно[?:]?[\n]|Что важно для нас[?:]?[\n]|Для нас важно[?:]?[\n]|Для нас важны[?:]?[\n]|В вашем опыте для нас важно[?:]?[\n]|Что для нас важно[?:]?[\n]'
@@ -77,7 +77,7 @@ SECTION_REQUIREMENTS_NAMES = (
     r'Жд[её]м мы жд[её]м от тебя[?:]?[\n]|Мы ждем, что вы обладаете[?:]?[\n]|Мы подходим друг другу, если ты обладаешь следующим опытом и знаниями[?:]?[\n]|'
     r'Пожелания к твоему опыту[?:]?[\n]|Какие знания, навыки и опыт необходимы для реализации задач.*?[:?]?[\n]|Мы рассчитываем, что ты[?:]?[\n]|'
     r'Наш стек в тестировании[?:]?[\n]|Что для этого необходимо[?:]?[\n]|Чего команда ожидает[?:]?[\n]|Требования и компетенции[?:]?[\n]|Какой опыт и навыки нужны[?:]?[\n]|'
-    r'Что от Вас требуется[?:]?[\n]|Что важно в вас[?:]?[\n]'
+    r'Что от Вас требуется[?:]?[\n]|Что важно в вас[?:]?[\n]|Что нужно для этой работы[?:]?[\n]'
     
 )
 
@@ -229,6 +229,7 @@ def get_applicant_favourite_vacancies_info_for_filtering_vacancies(vacancies: Qu
         duties = [] if vacancy.duties == NOT_FOUND_DUTIES else vacancy.duties.split(';')
         reqs = [] if vacancy.requirements == NOT_FOUND_REQS else vacancy.requirements.split(';')
         applicant_fav_vacancies_data[vacancy.id] = {
+            'external_id': vacancy.external_id,
             'title': vacancy.title,
             'vacancy_texts': duties + reqs,
             'payment_from': payment_from_ru, # зп от в рублях
@@ -255,7 +256,6 @@ def create_vacancy_instance(user: Applicant, vacancy_data: dict):
         firm.save()
     else:
         firm = Firm.objects.get(name=vacancy_data["employer"]["name"])
-
     vacancy = Vacancy.objects.create(
         user=user,
         initial_source=vacancy_data["initial_source"],
@@ -282,7 +282,7 @@ def prepare_vacancy_for_telegram_message(vacancy: dict) -> str:
     '''Излечение нужных данных из вакансии, объединение их в 1 текст для телеграм сообщения'''
     duties = "\n".join(vacancy.get("duties")[:2])
     requirements = "\n".join(vacancy.get("requirements")[:3])
-    working_condititons = "\n".join(vacancy.get("duties")[:4])
+    working_condititons = "\n".join(vacancy.get("working_conditions")[:4])
     work_formats = ", ".join(vacancy.get("work_formats"))
     payment = vacancy.get('payment')
     payment_text, payment_from, payment_to, curr = "", payment.get("payment_from"), payment.get("payment_to"), payment.get("currency")
