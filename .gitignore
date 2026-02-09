@@ -3,3 +3,4 @@ backend/celerybeat-schedule
 backend/entrypoint.sh
 bot/.env.bot
 frontend/
+assets/

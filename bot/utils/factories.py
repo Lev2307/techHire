@@ -33,6 +33,6 @@ def prepare_vacancy_text_for_message(vacancy_data: dict) -> str:
         payment_text = f'<i>{payment_from}-{payment_to}{curr}</i>'
     valid_until_dt = format_datetime(datetime.fromisoformat(vacancy_data.get("valid_until")), locale='ru', format='short')
 
-    result = f"<b><i>{vacancy_data.get('title')}</i></b>" + f"\nЗп: {payment_text}" + f"\n🎯 <b>Задачи:</b>\n <b>•</b> {duties}"+ f"\n🛠 <b>Требования:</b>\n <b>•</b> {requirements}" + f"\n🎁 <b>Условия:</b>\n <b>•</b> {working_condititons}" + f"\nОпыт работы: <i>{vacancy_data.get('experience_ru')}</i>" + f"\nФормат(-ы): <i>{work_formats}</i>"
+    result = f"<b><i>{vacancy_data.get('title')}</i></b>" + f"\nЗарплата: {payment_text}" + f"\n\n🎯  <b>Задачи:</b>\n <b>•</b> {duties}"+ f"\n\n🛠  <b>Требования:</b>\n <b>•</b> {requirements}" + f"\n\n🤝  <b>Условия:</b>\n <b>•</b> {working_condititons}" + f"\n\nОпыт работы: <i>{vacancy_data.get('experience_ru')}</i>" + f"\nФормат(-ы): <i>{work_formats}</i>"
     result += f"\nСчитается действительной до: <b>{valid_until_dt}</b>"
     return result
